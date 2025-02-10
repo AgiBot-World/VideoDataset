@@ -1,0 +1,35 @@
+ci:
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+  cache:
+    - key: pre-commit
+      paths:
+        - $PRE_COMMIT_HOME
+    - key: build
+      paths:
+        - $HOME/.conan2
+  coverage: /TOTAL.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/
+  image: ${HARBOR_HOST}/${HARBOR_PROJECT}/agibot-forge/dev:${NVIDIA_PYTORCH_VERSION}-latest
+  interruptible: true
+  parallel:
+    matrix:
+      - NVIDIA_PYTORCH_VERSION:
+          - '25.04'
+          - '25.06'
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  script:
+    - make prerequisites
+    - make dev-test,lint
+    - make pre-commit
+    - make test
+    - make build
+  stage: ci
+  variables:
+    PRE_COMMIT_HOME: $CI_PROJECT_DIR/.cache/.pre-commit
+  tags:
+    - genie-gpu-4090-k8s

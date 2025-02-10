@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: 3
+
+jobs:
+  ci:
+    runs-on: self-hosted
+    if: github.repository == 'AgiBot-World/videodataset'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: make dev-test,doc,lint
+      - run: make test
+      - run: make doc-build
+      - run: make build
+
+
+  build_wheels:
+    uses: ./.github/workflows/reuseable_cibuildwheel.yml
+    secrets: inherit
+    with:
+      auto: true
+      extra: false

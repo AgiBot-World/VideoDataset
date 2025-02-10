@@ -1,0 +1,82 @@
+name: cibuildwheel
+
+on:
+  workflow_call:
+    inputs:
+      auto:
+        description: Build wheels for auto archs
+        required: true
+        type: boolean
+      extra:
+        description: Build wheels for aarch64
+        required: true
+        type: boolean
+
+jobs:
+  build_wheels:
+    name: ${{ matrix.os }}, ${{ matrix.arch }}, ${{ matrix.build }} wheels
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-24.04]
+        arch: [x86_64, aarch64]
+        build: [manylinux]
+        qemu_arch: [aarch64]
+
+    steps:
+      - uses: actions/checkout@v4
+        if: >
+          inputs.auto && !contains(matrix.qemu_arch, matrix.arch) ||
+          inputs.extra && contains(matrix.qemu_arch, matrix.arch)
+        with:
+          fetch-depth: 0
+
+      - name: Free up disk space
+        if: >
+          inputs.auto && !contains(matrix.qemu_arch, matrix.arch) ||
+          inputs.extra && contains(matrix.qemu_arch, matrix.arch)
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          swap-storage: true
+
+      - name: Set up Python
+        if: >
+          inputs.auto && !contains(matrix.qemu_arch, matrix.arch) ||
+          inputs.extra && contains(matrix.qemu_arch, matrix.arch)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        if: runner.os == 'Linux' && inputs.extra && contains(matrix.qemu_arch, matrix.arch)
+
+      - name: Build wheels
+        if: >
+          inputs.auto && !contains(matrix.qemu_arch, matrix.arch) ||
+          inputs.extra && contains(matrix.qemu_arch, matrix.arch)
+        run: pipx run cibuildwheel==3.3.0 --output-dir wheelhouse
+        env:
+          CIBW_ARCHS: ${{ matrix.arch }}
+          CIBW_BUILD: '*${{ matrix.build }}*'
+          CIBW_BEFORE_ALL: >
+            yum config-manager --add-repo http://developer.download.nvidia.com/compute/cuda/repos/rhel8/${{ contains(matrix.arch, 'aarch64') && 'sbsa' || matrix.arch }}/cuda-rhel8.repo &&
+            yum -y install cuda-nvcc-12-9 cuda-cudart-devel-12-9 cuda-nvrtc-devel-12-9 nvidia-driver-cuda-libs &&
+            yum install -y https://download1.rpmfusion.org/free/el/rpmfusion-free-release-8.noarch.rpm &&
+            yum install -y ffmpeg ffmpeg-devel && rm -rf /var/cache/yum && yum clean all
+          CIBW_ENVIRONMENT: >
+            PATH=$PATH:/usr/local/cuda/bin
+            LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64
+
+      - name: Upload wheels
+        if: >
+          inputs.auto && !contains(matrix.qemu_arch, matrix.arch) ||
+          inputs.extra && contains(matrix.qemu_arch, matrix.arch)
+        uses: actions/upload-artifact@v4
+        with:
+          name: cibw-${{ matrix.os }}-${{ matrix.build }}-${{ matrix.arch }}
+          path: wheelhouse/*.whl

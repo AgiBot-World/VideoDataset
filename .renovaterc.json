@@ -1,0 +1,109 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "constraints": {
+    "python": "==3.10"
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "datasourceTemplate": "pypi",
+      "description": "Match Python packages installed with pip/pipx",
+      "managerFilePatterns": [
+        "/^Makefile$/",
+        "/^README\\.md$/",
+        "/^\\.devcontainer/Dockerfile$/",
+        "/^\\.github/workflows/.+\\.yml$/",
+        "/^\\.gitlab/workflows/.+\\.yml$/",
+        "/^\\.readthedocs\\.yaml$/",
+        "/^\\.renovaterc\\.json$/",
+        "/^docs/.+\\.md$/"
+      ],
+      "matchStrings": [
+        "pip install.* (?<depName>.*?)(\\[.*?\\])?==(?<currentValue>.*?)[\"\n]",
+        "pipx install( --force)? (?<depName>.*?)(\\[.*?\\])?==(?<currentValue>.*?)\\s",
+        "pipx list --short \\| grep -q \"(?<depName>.*?)(\\[.*?\\])? (?<currentValue>.*?)\""
+      ]
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "github-runners",
+      "depTypeTemplate": "github-runner",
+      "description": "Match GitHub runner defined in GitHub Actions matrix strategy",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.+\\.yml$/"
+      ],
+      "matchStrings": [
+        "# renovate: github-runner\n\\s+- (os: )?(?<depName>.*?)-(?<currentValue>.*)\n"
+      ],
+      "versioningTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "npm",
+      "description": "Match npm packages used with npx",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.+\\.yml$/"
+      ],
+      "matchStrings": [
+        "--package (?<depName>.+?)@(?<currentValue>.+?)\\s"
+      ],
+      "versioningTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "git-tags",
+      "depNameTemplate": "https://github.com/serious-scaffold/ss-python.git",
+      "depTypeTemplate": "copier-template",
+      "description": "Match template version specified in .copier-answers.yml",
+      "managerFilePatterns": [
+        "/^\\.copier-answers\\.yml$/"
+      ],
+      "matchStrings": [
+        "_commit: (?<currentValue>.*?)\n"
+      ],
+      "versioningTemplate": "semver"
+    }
+  ],
+  "extends": [
+    "config:best-practices",
+    ":enablePreCommit",
+    ":maintainLockFilesWeekly",
+    ":semanticCommitTypeAll(build)"
+  ],
+  "packageRules": [
+    {
+      "commitMessageTopic": "serious-scaffold-python",
+      "description": "Update template with copier when a new version is released",
+      "matchDepTypes": [
+        "copier-template"
+      ],
+      "postUpgradeTasks": {
+        "commands": [
+          "git stash",
+          "pip install copier==9.8.0",
+          "copier update --skip-answered --defaults --vcs-ref {{{newVersion}}}"
+        ]
+      },
+      "semanticCommitScope": "copier-template"
+    },
+    {
+      "description": "Group renovate docker tag and pre-commit-hooks tag",
+      "groupName": "renovate",
+      "matchDatasources": [
+        "docker",
+        "github-tags"
+      ],
+      "matchDepNames": [
+        "ghcr.io/renovatebot/renovate",
+        "renovatebot/pre-commit-hooks"
+      ]
+    },
+    {
+      "description": "Group debian packages to avoid failure when multiple packages are outdated",
+      "groupName": "debian packages",
+      "matchDepTypes": [
+        "debian"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+name: Pages
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+
+  release:
+    types:
+      - published
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: 3
+
+jobs:
+  pages:
+    if: false
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+
+      - name: Free up disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          swap-storage: true
+
+      - name: Install dependencies
+        run: >
+          wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb &&
+          sudo dpkg -i cuda-keyring_1.1-1_all.deb &&
+          sudo apt update && sudo apt-get install -y --no-install-recommends
+          cuda-nvcc-12-9
+          cuda-cudart-dev-12-9
+          cuda-nvrtc-dev-12-9
+          libnvidia-decode-580-server
+          ffmpeg
+          libavutil-dev
+          libswscale-dev
+          libavdevice-dev
+          libavfilter-dev
+          libx264-dev &&
+          echo "PATH=/usr/local/cuda/bin:$PATH" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64" >> $GITHUB_ENV
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+
+      - name: Build Docs
+        run: make dev-doc doc
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public

@@ -1,0 +1,209 @@
+[build-system]
+build-backend = "scikit_build_core.build"
+requires = [ "conan", "mypy", "numpy>2", "scikit-build-core", "torch" ]
+
+[project]
+name = "videodataset"
+description = "Video Dataset with NvCodec."
+readme = "README.md"
+keywords = [
+    "dataset",
+    "nvcodec",
+    "serious-scaffold",
+    "video",
+]
+license = { text = "MIT" }
+authors = [
+    { email = "genie@agibot.com", name = "genie" },
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering",
+    "Typing :: Typed",
+]
+dynamic = [
+    "version",
+]
+dependencies = [
+    "numpy",
+    "torch>=2.2.1",
+]
+urls.documentation = "https://AgiBot-World.github.io/videodataset"
+urls.issue = "https://github.com/AgiBot-World/videodataset/issues"
+urls.repository = "https://github.com/AgiBot-World/videodataset"
+
+[dependency-groups]
+test = [
+    "coverage>=7.6.10",
+    "opencv-python>=4.5.5.64",
+    "pydantic>=2.9",
+    "pydantic-settings>=2",
+    "pytest>=8.3.4",
+    "pytest-cov>=6.1",
+    "scikit-image>=0.25.2",
+]
+doc = [
+    "autodoc-pydantic>=2.2.0",
+    "coverage>=7.6.10",
+    "furo>=2024.8.6",
+    "mypy[reports]>=1.14.1",
+    "myst-parser>=3.0.1",
+    "pytest>=8.3.4",
+    "sphinx>=7.4.7",
+    "sphinx-autobuild>=2024.10.3",
+    "sphinx-autodoc-typehints",
+    "sphinx-click>=6.0.0",
+    "sphinx-copybutton",
+    "sphinx-design>=0.6.1",
+]
+lint = [
+    "mypy>=1.14.1",
+]
+
+[tool.setuptools_scm]
+fallback_version = "0.0.0"
+
+[tool.scikit-build]
+minimum-version = "0.9"
+build-dir = "build/{wheel_tag}"
+cmake.verbose = false
+logging.level = "DEBUG"
+metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
+sdist.include = [
+    "src/videodataset/_decoder.pyi",
+    "cmake",
+]
+
+[tool.scikit-build.cmake.define]
+BUILD_TESTING = "OFF"
+CMAKE_BUILD_TYPE = "Release"
+CONAN_INSTALL_ARGS = "--build=missing;-c tools.build:skip_test=true"
+
+[tool.cibuildwheel]
+build-verbosity = 1
+skip = [ "*win*" ]
+test-command = "pytest {project}/tests"
+test-extras = [ "test" ]
+test-skip = [ "*-win*", "*-macosx*", "*-manylinux*" ]
+manylinux-x86_64-image = "manylinux_2_28"
+
+[tool.cibuildwheel.linux]
+repair-wheel-command = """
+auditwheel repair \
+  --wheel-dir {dest_dir} {wheel} \
+  --exclude 'libtorch*.so' \
+  --exclude 'libc10*.so' \
+  --exclude 'libgomp*.so*' \
+  --exclude 'libcuda.so*'
+"""
+before-build = [
+    "ls ~/.cache/pip && rm -rf ~/.cache/pip/* || true",
+]
+
+[tool.ruff]
+src = [
+    "src",
+]
+fix = true
+lint.extend-select = [
+    "ARG", # flake8-unused-arguments
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "EM",  # flake8-errmsg
+    "EXE", # flake8-executable
+    "G",   # flake8-logging-format
+    "I",   # isort
+    "ICN", # flake8-import-conventions
+    "NPY", # NumPy specific rules
+    "PD",  # pandas-vet
+    "PGH", # pygrep-hooks
+    "PIE", # flake8-pie
+    "PL",  # pylint
+    "PT",  # flake8-pytest-style
+    "PTH", # flake8-use-pathlib
+    "RET", # flake8-return
+    "RUF", # Ruff-specific
+    "SIM", # flake8-simplify
+    "T20", # flake8-print
+    "UP",  # pyupgrade
+    "YTT", # flake8-2020
+]
+lint.ignore = [
+    "ISC001",  # Conflicts with formatter
+    "PGH003",  # type ignore
+    "PLR09",   # Too many <...>
+    "PLR2004", # Magic value used in comparison
+]
+lint.per-file-ignores."src/videodataset/_decoder.pyi" = [ "F821" ]
+lint.per-file-ignores."tests/*" = [
+    "ARG001",
+    "G004",   # Logging statement use f-string
+    "S101",
+    "T20",
+]
+lint.pydocstyle.convention = "google"
+
+[tool.codespell]
+write-changes = true
+check-filenames = true
+
+[tool.pyproject-fmt]
+indent = 4
+keep_full_version = true
+max_supported_python = "3.14"
+
+[tool.pytest.ini_options]
+addopts = [
+    "-ra",
+    "--durations=0",
+    "--showlocals",
+    "--strict-markers",
+    "--strict-config",
+]
+log_cli = true
+log_cli_level = "info"
+log_date_format = "%Y-%m-%d %H:%M:%S"
+log_format = "%(asctime)s %(levelname)s %(message)s"
+minversion = "6.0"
+
+[tool.coverage.report]
+fail_under = 75
+
+[tool.coverage.run]
+source = [
+    "videodataset",
+]
+
+[tool.mypy]
+disable_error_code = [
+    "import-untyped",
+    "operator",
+    "assignment",
+    "name-defined",
+    "no-untyped-def",
+    "type-arg",
+]
+exclude = [
+    "docs/*",
+    "src/videodataset/_decoder.pyi",
+    "conanfile.py",
+]
+
+[[tool.mypy.overrides]]
+module = "videodataset.*"
+check_untyped_defs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+no_implicit_optional = true
+show_error_codes = true

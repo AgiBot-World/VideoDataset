@@ -1,0 +1,6 @@
+name: CodeQL config
+
+# https://codeql.github.com/codeql-query-help/
+query-filters:
+  - exclude:
+      id: py/commented-out-code

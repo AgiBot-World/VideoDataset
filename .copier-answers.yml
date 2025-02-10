@@ -1,0 +1,28 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v0.8.42
+_src_path: gh:serious-scaffold/ss-pybind11
+author_email: genie@agibot.com
+author_name: genie
+codecov_notify_builds: 1
+codecov_threshold: 5%
+compiled: true
+copyright_holder: agibot
+copyright_license: MIT License
+copyright_year: '2025'
+create_devcontainer: false
+default_py: '3.10'
+docs_type: sphinx
+max_py: '3.13'
+min_py: '3.10'
+module_name: videodataset
+organization_name: genie
+project_description: Video Dataset with NvCodec.
+project_name: VideoDataset
+repo_host: github.com
+repo_name: videodataset
+repo_namespace: AgiBot-World
+repo_platform: github
+use_codecov: true
+use_codeql: true
+use_conan: false
+use_cpm: false

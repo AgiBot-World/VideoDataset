@@ -1,0 +1,121 @@
+default_install_hook_types:
+  - post-checkout
+  - post-merge
+  - post-rewrite
+  - pre-push
+default_stages:
+  - manual
+  - pre-push
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-docstring-first
+      - id: check-merge-conflict
+        args:
+          - '--assume-in-merge'
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: forbid-new-submodules
+      - id: mixed-line-ending
+      - id: name-tests-test
+        args:
+          - '--pytest-test-first'
+        exclude: ^tests/utils/
+      - id: no-commit-to-branch
+        stages:
+          - pre-push
+      - id: sort-simple-yaml
+        files: .pre-commit-config.yaml
+      - id: trailing-whitespace
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v20.1.5
+    hooks:
+      - id: clang-format
+        types_or: [c++, c, cuda]
+        stages:
+          - pre-commit
+        exclude: |
+          (?x)(
+              ^(csrc/include/core/.*) |
+              ^(csrc/src/core/.*)
+          )
+  - repo: https://github.com/cheshirekow/cmake-format-precommit
+    rev: v0.6.13
+    hooks:
+      - id: cmake-format
+        additional_dependencies: [pyyaml]
+        types: [file]
+        files: (\.cmake|CMakeLists.txt)(.in)?$
+        stages:
+          - pre-commit
+        exclude: |
+          (?x)(
+              ^(cmake/configure/ConanProvider.cmake) |
+              ^(cmake/configure/ExtractVersion.cmake) |
+              ^(cmake/configure/GitInfo.cmake)
+          )
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: pipenv run python -m mypy
+        language: system
+        types_or:
+          - python
+          - pyi
+        require_serial: true
+        exclude: |
+          (?x)(
+              ^(conanfile.py) |
+              ^(cmake/hooks/hook_rewrite_url.py)
+          )
+      - id: ruff
+        name: ruff
+        entry: ruff check --force-exclude
+        language: system
+        types_or:
+          - python
+          - pyi
+        require_serial: true
+      - id: ruff-format
+        name: ruff-format
+        entry: ruff format --force-exclude
+        language: system
+        types_or:
+          - python
+          - pyi
+        require_serial: true
+      - id: pyproject-fmt
+        name: pyproject-fmt
+        entry: pyproject-fmt
+        language: python
+        files: '(^|/)pyproject\.toml$'
+        types:
+          - toml
+      - id: codespell
+        name: codespell
+        entry: codespell
+        language: python
+        types:
+          - text
+      - id: check-jsonschema
+        name: check-jsonschema
+        entry: make check-jsonschema
+        language: python
+        files: (?x)^(
+          \.github/workflows/[^/]+|
+          \.gitlab-ci\.yml|
+          \.gitlab/workflows/[^/]+|
+          \.readthedocs\.yaml|
+          \.renovaterc\.json
+          )$
+        pass_filenames: false
+      - id: forbidden-files
+        name: forbidden files
+        entry: found Copier update rejection files; review them and remove them
+        language: fail
+        files: \.rej$
