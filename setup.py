@@ -5,6 +5,8 @@ from setuptools import setup
 package_name = "video_dataset"
 
 install_requires = [
+    'pycuda==2025.1',
+    'PyNvVideoCodec==1.0.2'
 ]
 
 setup(
