@@ -8,9 +8,8 @@ class VideoFrame:
     data: bytes
     timestamp: float
 
+
 class BaseDecoder(ABC):
-
-
     def __init__(self, videos: Iterable[str]):
         self.videos = videos
 
