@@ -1,0 +1,14 @@
+stages:
+  - build
+  - ci
+  - release
+default:
+  before_script:
+    - env | sort
+  #TODO: 合进去前改成latest
+  image: ${CI_REGISTRY_IMAGE}/videodataset/dev:v0.0.1-test
+  retry:
+    max: 2
+    when: runner_system_failure
+include:
+  - local: .gitlab/workflows/**.yml

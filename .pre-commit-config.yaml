@@ -1,0 +1,34 @@
+default_install_hook_types:
+  - post-checkout
+  - post-merge
+  - post-rewrite
+  - pre-push
+  - pre-commit
+default_stages:
+  - manual
+  - pre-push
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff
+        entry: ruff check --force-exclude
+        language: system
+        types_or:
+          - python
+          - pyi
+        require_serial: true
+        stages:
+          - pre-commit
+          - pre-push
+      - id: ruff-format
+        name: ruff-format
+        entry: ruff format --force-exclude
+        language: system
+        types_or:
+          - python
+          - pyi
+        require_serial: true
+        stages:
+          - pre-commit
+          - pre-push
