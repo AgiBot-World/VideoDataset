@@ -1,6 +1,7 @@
 from abc import ABC
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any
 
 
 @dataclass
