@@ -17,6 +17,7 @@ dev:
 prerequisites:
 	pipx list --short | grep -q "pre-commit 4.1.0" || pipx install --force pre-commit==4.1.0
 	pipx list --short | grep -q "ruff 0.9.3" || pipx install --force ruff==0.9.3
+	pipx list --short | grep -q "pdm 2.22.3" || pipx install --force pdm==2.22.3
 
 ########################################################################################
 # Lint and pre-commit
@@ -36,3 +37,10 @@ lint: ruff ruff-format
 # Run pre-commit with autofix against all files.
 pre-commit:
 	pre-commit run --all-files --hook-stage manual
+
+########################################################################################
+# build
+########################################################################################
+
+build:
+	pdm build $(if $(CI),-v)

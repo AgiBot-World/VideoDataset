@@ -47,8 +47,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && hash -r
 
+ARG PYPI_SOURCE=https://pypi.org/simple
 # Install prerequisites
 RUN --mount=source=Makefile,target=Makefile \
+    pip config set global.index-url ${PYPI_SOURCE} && \
     make prerequisites
 
 # Create a non-root user with sudo permission
