@@ -8,6 +8,7 @@ default:
   retry:
     max: 2
     when: runner_system_failure
+  image: ${CI_REGISTRY_IMAGE}/agibot-forge/dev:25.03.10-1
 
 include:
   - local: .gitlab/workflows/**.yml

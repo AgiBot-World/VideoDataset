@@ -2,7 +2,6 @@ build:
   tags:
     - compiler
   interruptible: true
-  image: ${CI_REGISTRY_IMAGE}/${CI_PROJECT_NAME}/ci:v1.0.0
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'

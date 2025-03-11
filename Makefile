@@ -1,40 +1,39 @@
-.PHONY: ruff ruff-format
-########################################################################################
-# Variables
-########################################################################################
+# 确保同一目标内的所有命令在同一个Shell会话中执行，避免环境激活状态丢失
+.ONESHELL:
+SHELL = /bin/bash
+CONDA = /opt/conda/bin/conda
+CONDA_ENV = agibot
+CONDA_ENV_PYTHON = /opt/conda/envs/$(CONDA_ENV)/bin/python
 
+.PHONY: ruff ruff-format dev conda-create conda-activate conda-clean prerequisites lint pre-commit build
 
 ########################################################################################
 # Development Environment Management
 ########################################################################################
 
-# Prepare the development environment.
-# Install the package in editable mode with all optional dependencies and pre-commit hook.
-dev:
-	if [ "$(CI)" != "true" ] && command -v pre-commit > /dev/null 2>&1; then pre-commit install; fi
+install:
+	pip install -e .
 
-# Install standalone tools
-prerequisites:
-	pipx list --short | grep -q "pre-commit 4.1.0" || pipx install --force pre-commit==4.1.0
-	pipx list --short | grep -q "ruff 0.9.3" || pipx install --force ruff==0.9.3
-	pipx list --short | grep -q "pdm 2.22.3" || pipx install --force pdm==2.22.3
+# Prepare the development environment and activate it
+dev:
+	source "$$($(CONDA) info --base)/etc/profile.d/conda.sh" \
+	&& conda activate $(CONDA_ENV) \
+	&& if [ "$(CI)" != "true" ] && command -v pre-commit >/dev/null 2>&1; then pre-commit install; fi \
+	&& exec bash
+
 
 ########################################################################################
 # Lint and pre-commit
 ########################################################################################
 
-# Lint with ruff.
 ruff:
 	ruff check .
 
-# Format with ruff.
 ruff-format:
 	ruff format --check .
 
-# Check lint with all linters.
 lint: ruff ruff-format
 
-# Run pre-commit with autofix against all files.
 pre-commit:
 	pre-commit run --all-files --hook-stage manual
 
@@ -43,4 +42,4 @@ pre-commit:
 ########################################################################################
 
 build:
-	pdm build $(if $(CI),-v)
+	$(CONDA_ENV_PYTHON) -m build $(if $(CI),-v)
