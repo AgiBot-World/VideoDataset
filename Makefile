@@ -4,6 +4,7 @@ SHELL = /bin/bash
 CONDA = /opt/conda/bin/conda
 CONDA_ENV = agibot
 CONDA_ENV_PYTHON = /opt/conda/envs/$(CONDA_ENV)/bin/python
+DIST_DIR = dist
 
 .PHONY: ruff ruff-format dev conda-create conda-activate conda-clean prerequisites lint pre-commit build
 
@@ -43,3 +44,10 @@ pre-commit:
 
 build:
 	$(CONDA_ENV_PYTHON) -m build $(if $(CI),-v)
+
+########################################################################################
+# publish
+########################################################################################
+
+publish:
+	twine upload $(if $(CI),--verbose) --skip-existing ./${DIST_DIR}/*
