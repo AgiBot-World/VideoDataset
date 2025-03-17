@@ -32,3 +32,11 @@ repos:
         stages:
           - pre-commit
           - pre-push
+      - id: mypy
+        name: mypy
+        entry: python -m mypy
+        language: system
+        types_or:
+          - python
+          - pyi
+        require_serial: true

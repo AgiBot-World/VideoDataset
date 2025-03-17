@@ -6,7 +6,7 @@ CONDA_ENV = agibot
 CONDA_ENV_PYTHON = /opt/conda/envs/$(CONDA_ENV)/bin/python
 DIST_DIR = dist
 
-.PHONY: ruff ruff-format dev conda-create conda-activate conda-clean prerequisites lint pre-commit build
+.PHONY: ruff ruff-format dev conda-create conda-activate conda-clean mypy lint pre-commit build
 
 ########################################################################################
 # Development Environment Management
@@ -27,13 +27,16 @@ dev:
 # Lint and pre-commit
 ########################################################################################
 
+mypy:
+	mypy .
+
 ruff:
 	ruff check .
 
 ruff-format:
 	ruff format --check .
 
-lint: ruff ruff-format
+lint: ruff ruff-format mypy
 
 pre-commit:
 	pre-commit run --all-files --hook-stage manual

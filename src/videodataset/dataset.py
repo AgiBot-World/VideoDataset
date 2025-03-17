@@ -1,17 +1,17 @@
+from abc import abstractmethod
+from typing import Any, Iterator
+
 from torch.utils.data import IterableDataset
 
 from videodataset.cache import Cache
 
 
 class BaseDataset(IterableDataset):
-    def __init__(self, cache_size: int):
+    def __init__(self, cache: Cache) -> None:
         super().__init__()
-        self.cache = Cache(cache_size=cache_size)
+        self.cache = cache
 
-    def __iter__(self):
-        """Yield next frame.
-
-        Returns:
-        Iterator: An iterator that yields the next frame.
-        """
+    @abstractmethod
+    def __iter__(self) -> Iterator[Any]:
+        """Yield next frame."""
         pass

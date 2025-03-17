@@ -1,5 +1,5 @@
-from abc import ABC
-from collections.abc import Iterable
+from abc import ABC, abstractmethod
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from typing import Any
 
@@ -11,17 +11,21 @@ class VideoFrame:
 
 
 class BaseDecoder(ABC):
-    def __init__(self, videos: Iterable[str]):
+    def __init__(self, videos: Iterable[str]) -> None:
         self.videos = videos
 
-    def __iter__(self):
+    @abstractmethod
+    def __iter__(self) -> Iterator[VideoFrame]:
         pass
 
+    @abstractmethod
     def decode_video(self, video: str) -> Iterable[VideoFrame]:
         pass
 
+    @abstractmethod
     def decode_video_frame(self, video: str, frame_index: int) -> VideoFrame:
         pass
 
+    @abstractmethod
     def get_item(self, index: int) -> Any:
         pass
