@@ -3,7 +3,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/../../)
 pybind11_add_module(_decoder
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/video_decoder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/bind.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src/cuda_context.cpp
 )
 
 find_path(NVIDIA_SDK_DIR NAMES nvcuvid.h

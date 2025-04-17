@@ -1,0 +1,18 @@
+import pytest
+
+from videodataset import video_decoder
+
+
+def test_init():
+    """Test CUDA context creation with valid and invalid GPU IDs."""
+    # Test with valid GPU ID
+    video_decoder.VideoDecoder(0, "h265")
+
+
+def test_invalid_gpu():
+    # Test invalid GPU ID initialization with out-of-range value 999 and H.265 codec
+    with pytest.raises(Exception) as exc_info:
+        # Attempt to create decoder with invalid GPU ID (should trigger error)
+        video_decoder.VideoDecoder(999, "h265")
+    # Verify error message contains "Invalid GPU ID" text pattern
+    assert "Invalid GPU ID" in str(exc_info.value)

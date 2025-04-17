@@ -5,7 +5,3 @@ VideoDecoder::VideoDecoder(int gpuid, std::string codec)
     : cuda_ctx(gpuid), // Initialized cuda context
     gpuId(gpuid),
     codec(codec) {}
-
-std::string VideoDecoder::hello_cuda() {
-    return "Hello CUDA!";
-}

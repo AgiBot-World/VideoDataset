@@ -18,5 +18,4 @@ public:
 
     int gpuId;         // ID of the GPU being used for decoding
     std::string codec;  // Video codec format being decoded
-    std::string hello_cuda();
 };
