@@ -16,3 +16,16 @@ def test_invalid_gpu():
         video_decoder.VideoDecoder(999, "h265")
     # Verify error message contains "Invalid GPU ID" text pattern
     assert "Invalid GPU ID" in str(exc_info.value)
+
+
+def test_open_invalid_file():
+    # Create decoder instance with GPU ID 0 and H.265 codec
+    decoder = video_decoder.VideoDecoder(0, "h265")
+
+    # Verify that opening invalid file raises RuntimeError
+    with pytest.raises(RuntimeError) as exc_info:
+        # Attempt to open non-existent/invalid video file
+        decoder.open("1.mp4")
+
+    # Validate error message contains expected pattern
+    assert "open_file failed" in str(exc_info.value)

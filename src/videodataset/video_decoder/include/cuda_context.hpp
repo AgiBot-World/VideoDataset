@@ -6,7 +6,7 @@
  * If the context is created by this object, it will be destroyed upon object destruction.
  */
  #pragma once
- #include <cuda.h>  // 添加 CUDA 驱动 API 头文件
+ #include <cuda.h>
  #include <stdexcept>
 
  class CudaContext {
