@@ -25,7 +25,7 @@ def test_open_invalid_file():
     # Verify that opening invalid file raises RuntimeError
     with pytest.raises(RuntimeError) as exc_info:
         # Attempt to open non-existent/invalid video file
-        decoder.open("1.mp4")
+        decoder.decode("1.mp4", 0)
 
     # Validate error message contains expected pattern
-    assert "open_file failed" in str(exc_info.value)
+    assert "Could not open file" in str(exc_info.value)
