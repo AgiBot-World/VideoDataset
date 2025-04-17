@@ -1,0 +1,1 @@
+recursive-include src/videodataset/video_decoder *.so
