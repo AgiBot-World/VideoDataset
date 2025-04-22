@@ -1,0 +1,20 @@
+commitlint:
+  stage: ci
+  tags:
+    - compiler
+  interruptible: true
+  image:
+    name: ${HARBOR_HOST}/${HARBOR_PROJECT}/commitlint/commitlint:19.5.0
+    entrypoint: [""]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  script:
+    - |
+      if [ "$CI_PIPELINE_SOURCE" = "push" ]; then
+        echo "$CI_COMMIT_TITLE" | commitlint -x @commitlint/config-conventional
+      elif [ "$CI_PIPELINE_SOURCE" = "merge_request_event" ]; then
+        echo "$CI_MERGE_REQUEST_TITLE" | commitlint -x @commitlint/config-conventional
+      fi
+  variables:
+    GIT_STRATEGY: none
