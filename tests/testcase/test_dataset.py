@@ -1,25 +1,15 @@
 import os
-import pytest
 from pathlib import Path
 
 from videodataset.dataset import A2dVideoDataset
 
 
-@pytest.fixture
-def sample_batch():
+def test_dataset():
     parent_dir = Path(__file__).parent.parent
-    video_path = os.path.join(parent_dir, "sample.mp4")
-    """生成包含10个样本的测试数据"""
-    return [
-        {
-            "video": video_path,
-        }
-        for _ in range(10)
-    ]
+    label_file_dir = os.path.join(parent_dir, "testdata", "labels")
+    data_root_dir = os.path.join(parent_dir, "testdata", "data")
+    dataset = A2dVideoDataset(label_file_dir, data_root_dir)
 
-
-def test_dataset(sample_batch):
-    dataset = A2dVideoDataset(sample_batch, None, 0, "h265")
-
+    assert len(dataset) == 1
     for sample in dataset:
         assert sample["frame"]
