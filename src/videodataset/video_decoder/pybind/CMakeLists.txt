@@ -4,6 +4,7 @@ pybind11_add_module(_decoder
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/video_decoder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/bind.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/NvDecoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/decoder_core.cpp
 )
 
 find_path(NVIDIA_SDK_DIR NAMES nvcuvid.h
