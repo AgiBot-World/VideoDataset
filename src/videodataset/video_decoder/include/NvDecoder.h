@@ -1,3 +1,30 @@
+/*
+ * This copyright notice applies to this header file only:
+ *
+ * Copyright (c) 2010-2023 NVIDIA Corporation
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the software, and to permit persons to whom the
+ * software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 #pragma once
 
 #include <assert.h>
@@ -8,7 +35,7 @@
 #include <iostream>
 #include <sstream>
 #include <string.h>
-#include <nvcuvid.h>
+#include "nvcuvid.h"
 #include "NvCodecUtils.h"
 #include <map>
 
@@ -95,14 +122,13 @@ public:
     /**
     *  @brief  This function is used to get the current CUDA context.
     */
-    CUstream GetStream() { return m_cuvidStream; }
     CUcontext GetContext() { return m_cuContext; }
 
     /**
     *  @brief  This function is used to get the output frame width.
     *  NV12/P016 output format width is 2 byte aligned because of U and V interleave
     */
-    int GetWidth() { assert(m_nWidth); return (m_eOutputFormat == cudaVideoSurfaceFormat_NV12 || m_eOutputFormat == cudaVideoSurfaceFormat_P016) 
+    int GetWidth() { assert(m_nWidth); return (m_eOutputFormat == cudaVideoSurfaceFormat_NV12 || m_eOutputFormat == cudaVideoSurfaceFormat_P016)
                                                 ? (m_nWidth + 1) & ~1 : m_nWidth; }
 
     /**
@@ -124,7 +150,7 @@ public:
     *  @brief  This function is used to get the number of chroma planes.
     */
     int GetNumChromaPlanes() { assert(m_nNumChromaPlanes); return m_nNumChromaPlanes; }
-    
+
     /**
     *   @brief  This function is used to get the current frame size based on pixel format.
     */
@@ -184,7 +210,7 @@ public:
     *   @param  nTimestamp - presentation timestamp
     */
     int Decode(const uint8_t *pData, int nSize, int nFlags = 0, int64_t nTimestamp = 0);
-    std::vector<std::tuple<CUdeviceptr, int64_t>> VideoDecode(const uint8_t* bsl_data, int bsl, int nFlags = 0);
+
     /**
     *   @brief  This function returns a decoded frame and timestamp. This function should be called in a loop for
     *   fetching all the frames that are available for display.
@@ -202,7 +228,7 @@ public:
 
     /**
     *   @brief  This function unlocks the frame buffer and makes the frame buffers available for write again
-    *   @param  ppFrame - pointer to array of frames that are to be unlocked	
+    *   @param  ppFrame - pointer to array of frames that are to be unlocked
     *   @param  nFrame - number of frames to be unlocked
     */
     void UnlockFrame(uint8_t **pFrame);
@@ -261,7 +287,7 @@ private:
     /**
     *   @brief  Callback function to be registered for getting a callback when all the unregistered user SEI Messages are parsed for a frame.
     */
-    static int CUDAAPI HandleSEIMessagesProc(void *pUserData, CUVIDSEIMESSAGEINFO *pSEIMessageInfo) { return ((NvDecoder *)pUserData)->GetSEIMessage(pSEIMessageInfo); } 
+    static int CUDAAPI HandleSEIMessagesProc(void *pUserData, CUVIDSEIMESSAGEINFO *pSEIMessageInfo) { return ((NvDecoder *)pUserData)->GetSEIMessage(pSEIMessageInfo); }
 
     /**
     *   @brief  This function gets called when a sequence is ready to be decoded. The function also gets called
@@ -276,7 +302,7 @@ private:
     int HandlePictureDecode(CUVIDPICPARAMS *pPicParams);
 
     /**
-    *   @brief  This function gets called after a picture is decoded and available for display. Frames are fetched and stored in 
+    *   @brief  This function gets called after a picture is decoded and available for display. Frames are fetched and stored in
         internal buffer
     */
     int HandlePictureDisplay(CUVIDPARSERDISPINFO *pDispInfo);
@@ -290,7 +316,7 @@ private:
     *   @brief  This function gets called when all unregistered user SEI messages are parsed for a frame
     */
     int GetSEIMessage(CUVIDSEIMESSAGEINFO *pSEIMessageInfo);
- 
+
     /**
     *   @brief  This function reconfigure decoder if there is a change in sequence params.
     */
@@ -305,7 +331,7 @@ private:
     // dimension of the output
     unsigned int m_nWidth = 0, m_nLumaHeight = 0, m_nChromaHeight = 0;
     unsigned int m_nNumChromaPlanes = 0;
-    // height of the mapped surface 
+    // height of the mapped surface
     int m_nSurfaceHeight = 0;
     int m_nSurfaceWidth = 0;
     cudaVideoCodec m_eCodec = cudaVideoCodec_NumCodecs;
