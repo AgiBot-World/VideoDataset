@@ -1,0 +1,19 @@
+[build-system]
+requires = [
+  "cmake",              # CMake构建系统基础
+  "ninja",              # 高性能构建工具
+  "scikit-build-core",  # 新版构建后端
+]
+
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "videodataset"
+version = "0.3.0"
+dependencies = ["numpy==1.26.4"]
+
+[tool.scikit-build]
+wheel.install-dir = "videodataset/video_decoder"
+cmake.args = [
+  "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={CMAKE_INSTALL_PREFIX}/videodataset/video_decoder"
+]
