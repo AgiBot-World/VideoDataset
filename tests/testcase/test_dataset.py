@@ -10,6 +10,11 @@ def test_dataset():
     data_root_dir = os.path.join(parent_dir, "testdata", "data")
     dataset = A2dVideoDataset(label_file_dir, data_root_dir)
 
-    assert len(dataset) == 1
+    assert len(dataset.episodes) == 1
+    assert len(dataset) == 3275
     for sample in dataset:
+        ep_id = sample["episoce_id"]
+        ep_info = dataset.episodes[ep_id]
+        missing = [field for field in ["state"] if field not in ep_info]
+        assert not missing, f"Missing required fields: {missing}"
         assert sample["frame"]
