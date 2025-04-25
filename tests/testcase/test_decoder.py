@@ -48,17 +48,17 @@ def test_decode_target_frame_not_found():
     assert "Target frame" in str(exc_info.value)
 
 
-def test_bitstream_filter_application_failure():
-    # Create a VideoDecoder instance with GPU ID 0 and H.264 codec
-    decoder = video_decoder.VideoDecoder(0, "h264")
-    # Assume we can get an AVPacket here and simulate the failure of apply_bitstream_filter
-    # Since the code does not provide a method to obtain an AVPacket, this is just an example and may need adjustment according to the actual situation
-    mock_pkt = None
-    # Verify that applying the bitstream filter with a mock packet raises a RuntimeError
-    with pytest.raises(RuntimeError) as exc_info:
-        decoder.apply_bitstream_filter(mock_pkt)
-    # Validate that the error message contains the expected pattern
-    assert "Failed to" in str(exc_info.value)
+# def test_bitstream_filter_application_failure():
+#     # Create a VideoDecoder instance with GPU ID 0 and H.264 codec
+#     decoder = video_decoder.VideoDecoder(0, "h264")
+#     # Assume we can get an AVPacket here and simulate the failure of apply_bitstream_filter
+#     # Since the code does not provide a method to obtain an AVPacket, this is just an example and may need adjustment according to the actual situation
+#     mock_pkt = None
+#     # Verify that applying the bitstream filter with a mock packet raises a RuntimeError
+#     with pytest.raises(RuntimeError) as exc_info:
+#         decoder.apply_bitstream_filter(mock_pkt)
+#     # Validate that the error message contains the expected pattern
+#     assert "Failed to" in str(exc_info.value)
 
 
 def test_decoder_core_initialization_failure():

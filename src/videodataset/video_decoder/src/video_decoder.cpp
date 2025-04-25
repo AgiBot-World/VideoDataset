@@ -1,10 +1,10 @@
 #include "video_decoder.hpp"
 #include "cuda_context.hpp"
+#include "PyCAIMemoryView.hpp"
 #include "Logger.h"
 
 // Global logger instance initialization
 simplelogger::Logger *logger = simplelogger::LoggerFactory::CreateConsoleLogger();
-
 
 /**
  * @brief Decodes the given encoded video data using NvDecoder.
@@ -67,26 +67,42 @@ std::vector<std::tuple<CUdeviceptr, int64_t>> NvDecoder::VideoDecode(
  * @throws std::invalid_argument if an unsupported codec is provided.
  * @throws std::runtime_error if there is an issue during the initialization of DecoderCore.
  */
-VideoDecoder::VideoDecoder(int gpuid, std::string codec)
+ VideoDecoder::VideoDecoder(int gpuid, const std::string& codec)
     : cuda_ctx(gpuid),
-      codec_type(codec),
+      codec_type(AV_CODEC_ID_HEVC),
       fmt_ctx_(nullptr),
-      decoder_core_(nullptr)
+      pkt(nullptr),
+      pktFiltered(nullptr)
 {
-    // Initialize codec type mapping
-    codec_id_ = codec == "h264" ? AV_CODEC_ID_H264 :
-                codec == "h265" ? AV_CODEC_ID_HEVC :
-                codec == "vp9"  ? AV_CODEC_ID_VP9  :
-                codec == "av1"  ? AV_CODEC_ID_AV1  : AV_CODEC_ID_NONE;
+    // Parse codec type
+    if (codec == "h265") {
+        codec_type = AV_CODEC_ID_HEVC;
+    } else if (codec == "h264") {
+        codec_type = AV_CODEC_ID_H264;
+    } else if (codec == "av1") {
+        codec_type = AV_CODEC_ID_AV1;
+    } else if (codec == "vp9") {
+        codec_type = AV_CODEC_ID_VP9;
+    } else {
+        throw std::runtime_error("Unsupported codec type: " + codec);
+    }
 
     if (codec_id_ == AV_CODEC_ID_NONE)
         throw std::invalid_argument("Unsupported codec: " + codec);
 
-    // Initialize the decoder core (pass the CUDA context)
-    try {
-        decoder_core_ = new DecoderCore(cuda_ctx.get_cu_context(), codec_id_);
-    } catch (const std::exception& e) {
-        throw std::runtime_error("DecoderCore initialization failed: " + std::string(e.what()));
+    // Initialize decoder instance
+    decoder = new NvDecoder(
+        cuda_ctx,
+        true,    // Use device frame buffer
+        FFmpeg2NvCodecId(codec_type),
+        true     // Low-latency mode
+    );
+
+    // Allocate packet memory
+    pkt = av_packet_alloc();
+    pktFiltered = av_packet_alloc();
+    if (!pkt || !pktFiltered) {
+        throw std::runtime_error("Failed to allocate AV packets");
     }
 }
 
@@ -108,15 +124,15 @@ VideoDecoder::~VideoDecoder() {
         std::cout << "VideoDecoder: Bitstream filter released\n";
     }
 
-    if (pkt_) {
-        av_packet_free(&pkt_);
+    if (pkt) {
+        av_packet_free(&pkt);
         std::cout << "VideoDecoder: AVPacket released\n";
     }
 
-    if (decoder_core_) {
-        delete decoder_core_;
-        std::cout << "VideoDecoder: DecoderCore released\n";
-    }
+    // if (decoder_core_) {
+    //     delete decoder_core_;
+    //     std::cout << "VideoDecoder: DecoderCore released\n";
+    // }
 }
 
 /**
@@ -133,6 +149,7 @@ VideoDecoder::~VideoDecoder() {
  */
 // Main decoding function
 DecodedFrame VideoDecoder::decode(const std::string& path, int target_frame) {
+    DecodedFrame resultFrame;
     // Stage 1: File initialization and stream discovery
     fmt_ctx_ = FFmpegUtils::open_file(path.c_str());
     const int video_stream_idx = FFmpegUtils::find_video_stream(fmt_ctx_);
@@ -148,98 +165,108 @@ DecodedFrame VideoDecoder::decode(const std::string& path, int target_frame) {
         fmt_ctx_->streams[video_stream_idx]->codecpar
     );
 
-    // Stage 4: Strict restoration of original decoding loop
-    AVPacket* pkt = av_packet_alloc();
-    AVPacket* pktFiltered = av_packet_alloc();
-    DecodedFrame result_frame;
-    bool frame_found = false;
-
-    while (av_read_frame(fmt_ctx_, pkt) >= 0) {
-        // Original filtered packet cleanup logic
-        if (pktFiltered->data) {
-            av_packet_unref(pktFiltered);
-        }
-
-        // Non-video stream processing (remain unchanged)
-        if (pkt->stream_index != video_stream_idx) {
-            av_packet_unref(pkt);
-            continue;
-        }
-
-        // Original timestamp boundary check (critical restoration point)
-        if (pkt->pts > target_pts) {
-            av_packet_unref(pkt);
-            break;
-        }
-
-        // Strict restoration of original filtering logic
-        AVPacket* processed_pkt = pkt;
-        if (codec_id_ == AV_CODEC_ID_H264 || codec_id_ == AV_CODEC_ID_HEVC) {
-            if (av_bsf_send_packet(bsf_ctx_, pkt) < 0 ||
-                av_bsf_receive_packet(bsf_ctx_, pktFiltered) < 0) {
-                av_packet_unref(pkt);
-                throw std::runtime_error("Bitstream filter failed");
-            }
-            processed_pkt = pktFiltered;
-        }
-
-        // Strict preservation of original decoding call (two parameters)
-        auto frames = decoder_core_->decode_packet(
-            processed_pkt->data,
-            processed_pkt->size
-        );
-
-        // Original frame checking logic
-        for (const auto& frame : frames) {
-            if (frame.timestamp >= target_pts) {
-                result_frame = frame;
-                frame_found = true;
-                goto cleanup;  // Preserve original break logic
-            }
-        }
-
-        av_packet_unref(processed_pkt);
-        av_packet_unref(pkt);
-    }
-
-cleanup:
-    av_packet_free(&pkt);
-    av_packet_free(&pktFiltered);
-
-    if (!frame_found) {
-        throw std::runtime_error("Target frame not found");
-    }
-    return result_frame;
-}
-
-/**
- * @brief Applies the bitstream filter to the given AVPacket.
- *
- * If the bitstream filter context exists, it sends the packet to the filter and receives the filtered packet.
- * If any operation fails, it throws a runtime error and frees the allocated resources.
- *
- * @param pkt Pointer to the AVPacket to be filtered.
- * @return A pointer to the filtered AVPacket, or the original packet if the bitstream filter context is not available.
- * @throws std::runtime_error if there are issues during the bitstream filter operations such as sending or receiving packets.
- */
-// Private method: Apply the bitstream filter
-AVPacket* VideoDecoder::apply_bitstream_filter(AVPacket* pkt) {
-    if (!bsf_ctx_) return pkt;
-
-    AVPacket* filtered_pkt = av_packet_alloc();
     try {
-        if (av_bsf_send_packet(bsf_ctx_, pkt) < 0) {
-            throw std::runtime_error("Failed to send packet to filter");
+        std::vector<DecodedFrame> decodedFrames;
+        int64_t current_pts = 0;
+        std::vector<std::tuple<CUdeviceptr, int64_t>> frameData;
+
+        // Frame reading loop
+        while (av_read_frame(fmt_ctx_, pkt) >= 0) {
+            // Clean filtered packet
+            if (pktFiltered->data) {
+                av_packet_unref(pktFiltered);
+            }
+
+            // Skip non-video packets
+            if (pkt->stream_index != video_stream_idx) {
+                av_packet_unref(pkt);
+                continue;
+            }
+
+            // Check timestamp boundary
+            if (pkt->pts > target_pts) {
+                av_packet_unref(pkt);
+                break;
+            }
+
+            current_pts = pkt->pts;
+
+            // Strict restoration of original filtering logic
+            AVPacket* processed_pkt = pkt;
+            // Process video packet (bitstream filtering for H.264/H.265)
+            if (codec_type == AV_CODEC_ID_H264 || codec_type == AV_CODEC_ID_HEVC) {
+                ck(av_bsf_send_packet(bsf_ctx_, pkt));
+                ck(av_bsf_receive_packet(bsf_ctx_, pktFiltered));
+                frameData = decoder->VideoDecode(pktFiltered->data, pktFiltered->size, CUVID_PKT_ENDOFPICTURE);
+            } else {
+                frameData = decoder->VideoDecode(pkt->data, pkt->size, CUVID_PKT_ENDOFPICTURE);
+            }
+
+            // Convert decoded data to frame structure
+            std::transform(
+                frameData.begin(),
+                frameData.end(),
+                std::back_inserter(decodedFrames),
+                [=](std::tuple<CUdeviceptr, int64_t> tup) {
+                    DecodedFrame frame;
+                    // Get decoder parameters
+                    const size_t width = decoder->GetWidth();
+                    const size_t height = decoder->GetHeight();
+                    const CUdeviceptr data_ptr = std::get<0>(tup);
+                    const int64_t timestamp = std::get<1>(tup);
+
+                    // Build YUV memory view
+                    frame.timestamp = timestamp;
+                    // Y component view
+                    frame.views.push_back(CAIMemoryView{
+                        {height, width, 1},         // Shape
+                        {width, 1, 1},             // Strides
+                        "|u1",                     // Data type
+                        reinterpret_cast<size_t>(decoder->GetStream()),  // Stream ID
+                        data_ptr,                  // Data pointer
+                        false                      // Read-only flag
+                    });
+                    // UV component view (assumes contiguous memory)
+                    frame.views.push_back(CAIMemoryView{
+                        {height/2, width/2, 2},    // Shape
+                        {width/2*2, 2, 1},         // Strides
+                        "|u1",                     // Data type
+                        reinterpret_cast<size_t>(decoder->GetStream()),
+                        data_ptr + width * height,  // UV offset
+                        false
+                    });
+
+                    // Load DLPack data (original implementation preserved)
+                    std::vector<size_t> dl_shape{ static_cast<size_t>(height * 1.5), width };
+                    std::vector<size_t> dl_stride{ width, 1 };
+                    frame.extBuf->LoadDLPack(dl_shape, dl_stride, "|u1", gpuId,
+                                           reinterpret_cast<size_t>(decoder->GetStream()),
+                                           data_ptr, false);
+                    return frame;
+                }
+            );
         }
 
-        if (av_bsf_receive_packet(bsf_ctx_, filtered_pkt) < 0) {
-            throw std::runtime_error("Failed to receive filtered packet");
+        // Cleanup resources
+        avformat_close_input(&fmt_ctx_);
+        if (bsf_ctx_) {
+            av_bsf_free(&bsf_ctx_);
         }
+
+        // Validate decoding results
+        if (decodedFrames.empty()) {
+            throw std::runtime_error("No frames decoded");
+        }
+        return decodedFrames[0];
 
     } catch (...) {
-        av_packet_free(&filtered_pkt);
-        throw;
+        // Cleanup on exception
+        avformat_close_input(&fmt_ctx_);
+        if (bsf_ctx_) {
+            av_bsf_free(&bsf_ctx_);
+        }
+        throw std::runtime_error("Decoding process failed");
     }
 
-    return filtered_pkt;
+    return resultFrame;  // Fallback return (should not be reached in practice)
 }
