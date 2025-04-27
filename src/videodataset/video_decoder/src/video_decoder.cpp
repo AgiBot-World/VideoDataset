@@ -218,23 +218,23 @@ DecodedFrame VideoDecoder::decode(const std::string& path, int target_frame) {
                     // Build YUV memory view
                     frame.timestamp = timestamp;
                     // Y component view
-                    frame.views.push_back(CAIMemoryView{
-                        {height, width, 1},         // Shape
-                        {width, 1, 1},             // Strides
-                        "|u1",                     // Data type
-                        reinterpret_cast<size_t>(decoder->GetStream()),  // Stream ID
-                        data_ptr,                  // Data pointer
-                        false                      // Read-only flag
-                    });
-                    // UV component view (assumes contiguous memory)
-                    frame.views.push_back(CAIMemoryView{
-                        {height/2, width/2, 2},    // Shape
-                        {width/2*2, 2, 1},         // Strides
-                        "|u1",                     // Data type
+                    frame.views.push_back(CAIMemoryView(
+                        {static_cast<size_t>(height), static_cast<size_t>(width)},
+                        {static_cast<size_t>(width), static_cast<size_t>(1)},
+                        "|u1",
                         reinterpret_cast<size_t>(decoder->GetStream()),
-                        data_ptr + width * height,  // UV offset
-                        false
-                    });
+                        std::get<0>(tup),
+                        true
+                    ));
+                    // UV component view (assumes contiguous memory)
+                    frame.views.push_back(CAIMemoryView(
+                        {static_cast<size_t>(height), static_cast<size_t>(width)},
+                        {static_cast<size_t>(width), static_cast<size_t>(1)},
+                        "|u1",
+                        reinterpret_cast<size_t>(decoder->GetStream()),
+                        std::get<0>(tup),
+                        true
+                    ));
 
                     // Load DLPack data (original implementation preserved)
                     std::vector<size_t> dl_shape{ static_cast<size_t>(height * 1.5), width };
