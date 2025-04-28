@@ -1,8 +1,8 @@
-import pinocchio as pin  # type: ignore[import-untyped]
+import pinocchio as pin
 import numpy as np
-from scipy.optimize import minimize  # type: ignore[import-untyped]
-import quaternionic  # type: ignore[import-untyped]
-from scipy.spatial.transform import Rotation as R  # type: ignore[import-untyped]
+from scipy.optimize import minimize
+import quaternionic
+from scipy.spatial.transform import Rotation as R
 
 
 class Kinematics:

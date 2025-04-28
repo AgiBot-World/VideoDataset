@@ -2,14 +2,19 @@ import os
 import copy
 import json
 import glob
+import random
 from typing import Any, List, Dict, Callable
 
-import h5py  # type: ignore[import-untyped]
+import h5py
 import torch
 import numpy as np
+from PIL import Image
 from pathlib import Path
 from torch.utils.data import Dataset
-from videodataset.video_decoder import VideoDecoder
+
+# from videodataset.video_decoder import VideoDecoder
+from videodataset.utils.image_util import dynamic_preprocess, build_transform
+from videodataset.utils.converstion_util import preprocess_internlm
 from . import Kinematics
 
 
@@ -18,6 +23,7 @@ class A2dVideoDataset(Dataset):
         self,
         label_file_dir: str,
         data_root_dir: str,
+        use_cam_list: list = ["head", "hand_left", "hand_right"],
         transforms: Callable | None = None,
         episode_transforms: Callable | None = None,
         action_chunk_size: int = 30,
@@ -30,6 +36,17 @@ class A2dVideoDataset(Dataset):
         delta_type: str = "frame",
         gripper_use_delta: bool = False,
         use_latent_action: bool = False,
+        prompt_mode_list: list = [0],
+        dynamic_image_size: bool = False,
+        is_train: bool = True,
+        image_size: int = 448,
+        pad2square: bool = False,
+        use_thumbnail=False,
+        min_dynamic_patch=1,
+        max_dynamic_patch=12,
+        normalize_type: str = "imagenet",
+        num_image_token: int = 256,
+        text_tokenizer=None,
         device_id: int = 0,
         codec: str = "h265",
     ):
@@ -37,6 +54,7 @@ class A2dVideoDataset(Dataset):
         self.episode_transforms = episode_transforms
         self.transforms = transforms
         self.data_root_dir = data_root_dir
+        self.use_cam_list = use_cam_list
         self.action_chunk_size = action_chunk_size
         self.action_shift = action_shift
         self.use_real_state = use_real_state
@@ -48,8 +66,19 @@ class A2dVideoDataset(Dataset):
         self.gripper_use_delta = gripper_use_delta
         self.use_latent_action = use_latent_action
         self.ActionSpacePadder = ActionSpacePadder()
+        self.prompt_mode_list = prompt_mode_list
+        self.dynamic_image_size = dynamic_image_size
+        self.is_train = is_train
+        self.image_size = image_size
+        self.pad2square = pad2square
+        self.use_thumbnail = use_thumbnail
+        self.min_dynamic_patch = min_dynamic_patch
+        self.max_dynamic_patch = max_dynamic_patch
+        self.normalize_type = normalize_type
+        self.num_image_token = num_image_token
+        self.text_tokenizer = text_tokenizer
 
-        self.decoder = VideoDecoder(device_id, codec)
+        # self.decoder = VideoDecoder(device_id, codec)
         self.episodes: dict[int, dict[str, Any]] = {}
         self.frames: List[dict] = []
 
@@ -80,8 +109,10 @@ class A2dVideoDataset(Dataset):
     def get_state_path(self, episode_info: Dict) -> str:
         return os.path.join(self.get_episode_path(episode_info), "aligned_joints.h5")
 
-    def get_video_path(self, episode_info: Dict) -> str:
-        return os.path.join(self.get_episode_path(episode_info), "sample.mp4")
+    def get_video_path(self, episode_info: Dict, cam_name: str) -> str:
+        return os.path.join(
+            self.get_episode_path(episode_info), "videos", f"{cam_name}.mp4"
+        )
 
     def load_episodes(self, label_file_dir: str) -> None:
         if not os.path.isdir(label_file_dir):
@@ -98,6 +129,12 @@ class A2dVideoDataset(Dataset):
 
             except json.JSONDecodeError as e:
                 raise RuntimeError(f"JSON parsing failed: {json_file}") from e
+        for episode in self.episodes.values():
+            all_action_desc = [
+                act_step["english_action_text"]
+                for act_step in episode["label_info"]["action_config"]
+            ]
+            episode["detailed_job_description"] = ";".join(all_action_desc)
 
     def load_meta(self) -> None:
         for episode in self.episodes.values():
@@ -154,7 +191,7 @@ class A2dVideoDataset(Dataset):
         for episode in self.episodes.values():
             action_config = episode["label_info"]["action_config"]
             last_frame_idx = max(step["end_frame"] for step in action_config)
-            for act_step in action_config:
+            for action_idx, act_step in enumerate(action_config):
                 start = act_step["start_frame"]
                 end = min(
                     act_step["end_frame"],
@@ -166,7 +203,7 @@ class A2dVideoDataset(Dataset):
                             "episode_id": f"{episode['episode_id']}",
                             "frame_idx": f"{current_idx}",
                             "target_idx": f"{current_idx + self.action_chunk_size * self.action_shift}",
-                            "video": self.get_video_path(episode),
+                            "action_idx": f"{action_idx}",
                         }
                     )
 
@@ -306,6 +343,60 @@ class A2dVideoDataset(Dataset):
         sample["action_target"] = action_target
         sample["agent_state"] = agent_state
 
+    def get_prompt(self, sample: dict) -> str:
+        episode_id = int(sample["episode_id"])
+        episode_info = self.episodes[episode_id]
+        detailed_job_description = episode_info["detailed_job_description"]
+        job_description = episode_info["english_task_name"]
+        action_idx = int(sample["action_idx"])
+        action_config = episode_info["label_info"]["action_config"][action_idx]
+        sub_job_description = action_config["english_action_text"]
+
+        prompt_mode = random.choice(self.prompt_mode_list)
+        if prompt_mode == 0:
+            prompt = f"What action should the robot take to {job_description}?"
+        elif prompt_mode == 1:
+            prompt = f"The robot is performing the step of {sub_job_description}."
+        elif prompt_mode == 2:
+            prompt = f"What action should the robot take to {job_description}? The robot is performing the step of {sub_job_description}."
+        elif prompt_mode == 3:
+            prompt = f"The robot is performing the step of {detailed_job_description}?"
+        elif prompt_mode == 4:
+            prompt = f"What action should the robot take to {job_description}? Place the items in the material box in front of items with the same appearance on the shelves."
+        else:
+            raise IndexError(f"invalid prompt_mode: {prompt_mode}")
+        return prompt
+
+    def get_token(self, sample: dict, num_tiles: list[int], num_patches: int) -> dict:
+        final_prompt = self.get_prompt(sample)
+        num_image = len(self.use_cam_list)
+        num_image_tokens = [self.num_image_token * num_tile for num_tile in num_tiles]
+        conversation = [
+            {
+                "from": "human",
+                "value": f"{'<image>' * num_image}{final_prompt}",
+            },
+            {"from": "gpt", "value": ""},
+        ]
+        ret = preprocess_internlm(
+            "internlm2-chat",
+            [conversation],
+            self.text_tokenizer,
+            num_image_tokens,
+            num_image=num_image,
+            group_by_length=True,
+        )
+        position_ids = ret["attention_mask"].long().cumsum(-1) - 1
+        position_ids.masked_fill_(ret["attention_mask"] == 0, 1)
+
+        ret = dict(
+            input_ids=ret["input_ids"][0],
+            attention_mask=ret["attention_mask"][0],
+            position_ids=position_ids[0],
+            image_flags=torch.tensor([1] * num_patches, dtype=torch.long),
+        )
+        return ret
+
     def __len__(self):
         return len(self.frames)
 
@@ -315,6 +406,22 @@ class A2dVideoDataset(Dataset):
 
         self.get_action_and_state(sample)
 
+        images = []
+        """for cam_name in self.use_cam_list:
+            video_path = self.get_video_path(episode_info, cam_name)
+            decoded_frame = self.decoder.decode(video_path, int(sample["frame_idx"]))
+            (height, width) = decoded_frame.shape
+            src_tensor = torch.from_dlpack(decoded_frame)
+            rgb_tensor = nv12_to_rgb(src_tensor, width, int(height / 1.5))
+            rgb_tensor = rgb_tensor.cpu().numpy()
+            img = Image.fromarray(rgb_tensor, "RGB")
+            images.append(img)"""
+        for cam_name in self.use_cam_list:
+            rgb_tensor = torch.randn(640, 480, 3, dtype=torch.float32)
+            rgb_tensor = rgb_tensor.numpy()
+            img = Image.fromarray(rgb_tensor, "RGB")
+            images.append(img)
+        sample["images"] = images
         if self.transforms:
             sample = self.transforms(sample)
 
@@ -334,14 +441,39 @@ class A2dVideoDataset(Dataset):
         if not self.use_real_state:
             agent_state = -1 * torch.ones_like(agent_state)
 
-        results = {
-            "action_gts": torch.tensor(action, dtype=torch.float32),
-            "action_mask": None,  # torch.tensor(action_mask, dtype=torch.float32),
-            "state": agent_state,
-        }
-        decoded_frame = self.decoder.decode(sample["video"], 0)
-        frame_tensor = torch.from_dlpack(decoded_frame)
-        results["frame"] = frame_tensor
+        img_transform = build_transform(
+            is_train=self.is_train,
+            input_size=self.image_size,
+            pad2square=self.pad2square,
+            normalize_type=self.normalize_type,
+        )
+        images, num_tiles = [], []
+        if self.dynamic_image_size:
+            for img in sample["images"]:
+                image = dynamic_preprocess(
+                    img,
+                    min_num=self.min_dynamic_patch,
+                    max_num=self.max_dynamic_patch,
+                    image_size=self.image_size,
+                    use_thumbnail=self.use_thumbnail,
+                )
+                images += image
+                num_tiles.append(len(image))
+        else:
+            images = sample["images"]
+            num_tiles = [1] * len(images)
+        pixel_values = [img_transform(image) for image in images]
+        pixel_values = torch.stack(pixel_values)
+        num_patches = pixel_values.size(0)
+        results = self.get_token(sample, num_tiles, num_patches)
+        results.update(
+            {
+                "action_gts": torch.tensor(action, dtype=torch.float32),
+                "action_mask": None,  # torch.tensor(action_mask, dtype=torch.float32),
+                "state": agent_state,
+                "pixel_values": pixel_values,
+            }
+        )
         return results
 
 

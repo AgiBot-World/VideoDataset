@@ -17,3 +17,7 @@ wheel.install-dir = "videodataset/video_decoder"
 cmake.args = [
   "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={CMAKE_INSTALL_PREFIX}/videodataset/video_decoder"
 ]
+
+[tool.mypy]
+disable_error_code = ["import-untyped", "operator"]
+exclude = 'tests/testdata/model'
