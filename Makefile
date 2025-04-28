@@ -1,7 +1,8 @@
-
 DIST_DIR = dist
+SDK_LIB_DIR = /workspace/Video_Codec_SDK_12.1.14/Lib/linux/stubs/x86_64
+SYSTEM_LIB_DIR = /usr/lib/x86_64-linux-gnu
 
-.PHONY: ruff ruff-format dev mypy lint pre-commit build
+.PHONY: ruff ruff-format dev mypy lint pre-commit build ensure-lib
 
 ########################################################################################
 # Development Environment Management
@@ -62,7 +63,19 @@ pre-commit:
 # build
 ########################################################################################
 
-build: clean
+ensure-lib:
+	@echo "Checking and copying NVIDIA libraries..."
+	@if [ ! -f "$(SYSTEM_LIB_DIR)/libnvcuvid.so.1" ] && [ -f "$(SDK_LIB_DIR)/libnvcuvid.so" ]; then \
+		echo "Copying libnvcuvid.so to $(SYSTEM_LIB_DIR)"; \
+		sudo cp "$(SDK_LIB_DIR)/libnvcuvid.so" "$(SYSTEM_LIB_DIR)/libnvcuvid.so.1"; \
+	fi
+	@if [ ! -f "$(SYSTEM_LIB_DIR)/libnvidia-encode.so" ] && [ -f "$(SDK_LIB_DIR)/libnvidia-encode.so" ]; then \
+		echo "Copying libnvidia-encode.so to $(SYSTEM_LIB_DIR)"; \
+		sudo cp "$(SDK_LIB_DIR)/libnvidia-encode.so" "$(SYSTEM_LIB_DIR)/libnvidia-encode.so.1"; \
+	fi
+	@echo "Library check completed."
+
+build: clean ensure-lib
 	python -m build -w
 
 ########################################################################################
