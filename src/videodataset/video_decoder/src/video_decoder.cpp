@@ -1,5 +1,4 @@
 #include "video_decoder.hpp"
-#include "cuda_context.hpp"
 #include "PyCAIMemoryView.hpp"
 #include "Logger.h"
 
@@ -68,12 +67,36 @@ std::vector<std::tuple<CUdeviceptr, int64_t>> NvDecoder::VideoDecode(
  * @throws std::runtime_error if there is an issue during the initialization of DecoderCore.
  */
  VideoDecoder::VideoDecoder(int gpuid, const std::string& codec)
-    : cuda_ctx(gpuid),
+    : gpuId(gpuid),
+      codec(codec),
       codec_type(AV_CODEC_ID_HEVC),
+      cu_ctx(nullptr),
+      destroy(false),
       fmt_ctx_(nullptr),
       pkt(nullptr),
       pktFiltered(nullptr)
 {
+
+    // Initialize CUDA driver
+    ck(cuInit(0));
+
+    // Validate GPU device availability
+    int device_count = 0;
+    ck(cuDeviceGetCount(&device_count));
+    if (gpuid < 0 || gpuid >= device_count) {
+        throw std::invalid_argument(
+            "GPU ordinal out of range. Should be within [0, " +
+            std::to_string(device_count - 1) + "]"
+        );
+    }
+
+    // Get or create CUDA context
+    ck(cuCtxGetCurrent(&cu_ctx));
+    if (!cu_ctx) {
+        ck(cuCtxCreate(&cu_ctx, 0, gpuid));
+        destroy = true;
+    }
+
     // Parse codec type
     if (codec == "h265") {
         codec_type = AV_CODEC_ID_HEVC;
@@ -87,12 +110,10 @@ std::vector<std::tuple<CUdeviceptr, int64_t>> NvDecoder::VideoDecode(
         throw std::runtime_error("Unsupported codec type: " + codec);
     }
 
-    if (codec_id_ == AV_CODEC_ID_NONE)
-        throw std::invalid_argument("Unsupported codec: " + codec);
 
     // Initialize decoder instance
     decoder = new NvDecoder(
-        cuda_ctx,
+        cu_ctx,
         true,    // Use device frame buffer
         FFmpeg2NvCodecId(codec_type),
         true     // Low-latency mode
@@ -114,25 +135,20 @@ std::vector<std::tuple<CUdeviceptr, int64_t>> NvDecoder::VideoDecode(
  */
 // Destructor: Release all resources
 VideoDecoder::~VideoDecoder() {
-    if (fmt_ctx_) {
-        avformat_close_input(&fmt_ctx_);
-        std::cout << "VideoDecoder: AVFormatContext released\n";
+    if (decoder != nullptr) {
+        delete decoder;
+        }
+    if (destroy) {
+        cuCtxDestroy(cu_ctx);
     }
-
-    if (bsf_ctx_) {
-        av_bsf_free(&bsf_ctx_);
-        std::cout << "VideoDecoder: Bitstream filter released\n";
-    }
-
     if (pkt) {
         av_packet_free(&pkt);
         std::cout << "VideoDecoder: AVPacket released\n";
     }
+    if (pktFiltered) {
+        av_packet_free(&pktFiltered);
+    }
 
-    // if (decoder_core_) {
-    //     delete decoder_core_;
-    //     std::cout << "VideoDecoder: DecoderCore released\n";
-    // }
 }
 
 /**
@@ -149,6 +165,7 @@ VideoDecoder::~VideoDecoder() {
  */
 // Main decoding function
 DecodedFrame VideoDecoder::decode(const std::string& path, int target_frame) {
+    cuCtxSetCurrent(cu_ctx);
     DecodedFrame resultFrame;
     // Stage 1: File initialization and stream discovery
     fmt_ctx_ = FFmpegUtils::open_file(path.c_str());
@@ -161,7 +178,7 @@ DecodedFrame VideoDecoder::decode(const std::string& path, int target_frame) {
 
     // Stage 3: Bitstream filter initialization
     bsf_ctx_ = FFmpegUtils::create_bitstream_filter(
-        codec_id_,
+        codec_type,
         fmt_ctx_->streams[video_stream_idx]->codecpar
     );
 
@@ -201,7 +218,10 @@ DecodedFrame VideoDecoder::decode(const std::string& path, int target_frame) {
             } else {
                 frameData = decoder->VideoDecode(pkt->data, pkt->size, CUVID_PKT_ENDOFPICTURE);
             }
-
+            CUstream stream = decoder->GetStream();
+            if (!stream) {
+                throw std::runtime_error("CUDA stream is invalid");
+            }
             // Convert decoded data to frame structure
             std::transform(
                 frameData.begin(),

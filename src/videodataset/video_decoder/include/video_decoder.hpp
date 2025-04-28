@@ -1,14 +1,13 @@
 #pragma once
 #include "NvDecoder.h"
 #include "ffmpeg_utils.hpp"
-#include "cuda_context.hpp"
 #include "PyCAIMemoryView.hpp"
 #include "FFmpegDemuxer.h"
 
 
 class VideoDecoder {
     private:
-        CudaContext cuda_ctx;  // CUDA context for GPU operations
+        CUcontext cu_ctx = NULL;  // CUDA context for GPU operations
         // Add new member variables
         AVBSFContext* bsf_ctx_ = nullptr; // Bitstream filter context
         AVPacket* pkt = nullptr; // Packet pointer
@@ -16,11 +15,7 @@ class VideoDecoder {
         AVCodecID codec_type;
         AVCodecID codec_id_;
         AVFormatContext* fmt_ctx_;
-        // DecoderCore* decoder_core_;
         NvDecoder * decoder = nullptr;
-        bool check_frames(const std::vector<DecodedFrame>& frames, int64_t target_pts, DecodedFrame& result);
-        CUstream GetStream() const { return nullptr; } // 使用默认CUDA流
-        // AVPacket* apply_bitstream_filter(AVPacket* pkt);
     public:
         // Constructor: creates a video decoder instance
         // @param gpuid: GPU device ID to use for decoding
@@ -29,7 +24,7 @@ class VideoDecoder {
         ~VideoDecoder();
         DecodedFrame decode(const std::string &videoPath, const int targetFrame);
         AVFormatContext* open(const std::string &videoPath);
-
+        bool destroy = false;
         int gpuId;         // ID of the GPU being used for decoding
         std::string codec;  // Video codec format being decoded
     };

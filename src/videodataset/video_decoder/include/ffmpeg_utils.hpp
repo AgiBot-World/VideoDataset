@@ -117,10 +117,10 @@ namespace FFmpegUtils {
      * @param codecpar Pointer to the AVCodecParameters of the stream.
      * @return Pointer to the initialized AVBSFContext, or nullptr on failure.
      */
-    inline AVBSFContext* create_bitstream_filter(AVCodecID codec_id, AVCodecParameters* codecpar) {
+    inline AVBSFContext* create_bitstream_filter(AVCodecID codec_type, AVCodecParameters* codecpar) {
         const char* filter_name = nullptr;
-        if (codec_id == AV_CODEC_ID_H264) filter_name = "h264_mp4toannexb";
-        else if (codec_id == AV_CODEC_ID_HEVC) filter_name = "hevc_mp4toannexb";
+        if (codec_type == AV_CODEC_ID_H264) filter_name = "h264_mp4toannexb";
+        else if (codec_type == AV_CODEC_ID_HEVC) filter_name = "hevc_mp4toannexb";
         if (!filter_name) return nullptr;
 
         const AVBitStreamFilter* bsf = av_bsf_get_by_name(filter_name);

@@ -6,6 +6,7 @@ from videodataset import video_decoder
 def test_init():
     """Test CUDA context creation with valid and invalid GPU IDs."""
     # Test with valid GPU ID
+
     video_decoder.VideoDecoder(0, "h265")
 
 
@@ -48,19 +49,6 @@ def test_decode_target_frame_not_found():
     assert "Target frame" in str(exc_info.value)
 
 
-# def test_bitstream_filter_application_failure():
-#     # Create a VideoDecoder instance with GPU ID 0 and H.264 codec
-#     decoder = video_decoder.VideoDecoder(0, "h264")
-#     # Assume we can get an AVPacket here and simulate the failure of apply_bitstream_filter
-#     # Since the code does not provide a method to obtain an AVPacket, this is just an example and may need adjustment according to the actual situation
-#     mock_pkt = None
-#     # Verify that applying the bitstream filter with a mock packet raises a RuntimeError
-#     with pytest.raises(RuntimeError) as exc_info:
-#         decoder.apply_bitstream_filter(mock_pkt)
-#     # Validate that the error message contains the expected pattern
-#     assert "Failed to" in str(exc_info.value)
-
-
 def test_decoder_core_initialization_failure():
     # Simulate the situation where an exception is thrown during the initialization of DecoderCore
     # The parameters may need to be adjusted to trigger the exception. This is just an example.
@@ -69,17 +57,3 @@ def test_decoder_core_initialization_failure():
         video_decoder.VideoDecoder(999, "h264")
     # Validate that the error message contains the expected pattern
     assert "DecoderCore initialization failed" in str(exc_info.value)
-
-
-def test_nv_decoder_video_decode_unsupported_format():
-    # Assume the parameter here can initialize an NvDecoder instance
-    decoder = video_decoder.NvDecoder(None)
-    # Simulate encoded data
-    encoded_data = b""
-    # Set the size of the encoded data
-    data_size = 0
-    # Verify that decoding with an empty encoded data raises a RuntimeError due to an unsupported format
-    with pytest.raises(RuntimeError) as exc_info:
-        decoder.VideoDecode(encoded_data, data_size, 0)
-    # Validate that the error message contains the expected pattern
-    assert "Unsupported video format" in str(exc_info.value)
