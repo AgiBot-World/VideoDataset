@@ -1,3 +1,30 @@
+/*
+ * This copyright notice applies to this header file only:
+ *
+ * Copyright (c) 2010-2023 NVIDIA Corporation
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the software, and to permit persons to whom the
+ * software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 #pragma once
 
 #include <assert.h>
@@ -93,9 +120,13 @@ public:
     ~NvDecoder();
 
     /**
-    *  @brief  This function is used to get the current CUDA context.
+    *  @brief  This function is used to get the current CUDA stream.
     */
     CUstream GetStream() { return m_cuvidStream; }
+
+    /**
+    *  @brief  This function is used to get the current CUDA context.
+    */
     CUcontext GetContext() { return m_cuContext; }
 
     /**
@@ -184,7 +215,19 @@ public:
     *   @param  nTimestamp - presentation timestamp
     */
     int Decode(const uint8_t *pData, int nSize, int nFlags = 0, int64_t nTimestamp = 0);
+
+    /**
+    *   @brief  This function decodes video data and returns a collection of decoded frames with their
+    *           associated metadata. All decoded frames should be processed before subsequent decode calls.
+    *   @param  bsl_data - pointer to the input bitstream data buffer containing encoded video content
+    *   @param  bsl      - size of the input bitstream data buffer in bytes
+    *   @param  nFlags   - CUvideopacketflags for configuring decoder behavior (default: 0)
+    *   @return A vector of tuples where each tuple contains:
+    *           - CUdeviceptr: Memory address of the decoded frame in device memory
+    *           - int64_t:     Presentation timestamp associated with the decoded frame
+    */
     std::vector<std::tuple<CUdeviceptr, int64_t>> VideoDecode(const uint8_t* bsl_data, int bsl, int nFlags = 0);
+
     /**
     *   @brief  This function returns a decoded frame and timestamp. This function should be called in a loop for
     *   fetching all the frames that are available for display.
