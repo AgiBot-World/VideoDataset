@@ -1,6 +1,9 @@
 #include "video_decoder.hpp"
 #include "PyCAIMemoryView.hpp"
 #include "Logger.h"
+extern "C" {
+    #include <libavformat/avformat.h>
+    }
 
 // Global logger instance initialization
 simplelogger::Logger *logger = simplelogger::LoggerFactory::CreateConsoleLogger();
@@ -72,6 +75,7 @@ std::vector<std::tuple<CUdeviceptr, int64_t>> NvDecoder::VideoDecode(
       codec_type(AV_CODEC_ID_HEVC),
       cu_ctx(nullptr),
       destroy(false),
+      decoder(nullptr),
       fmt_ctx_(nullptr),
       pkt(nullptr),
       pktFiltered(nullptr)
@@ -151,6 +155,60 @@ VideoDecoder::~VideoDecoder() {
 
 }
 
+
+/**
+ * @brief Initializes and opens a video file for decoding.
+ *
+ * Initializes FFmpeg network protocols, opens the specified video file, and prepares
+ * the decoding context. Allocates and manages the following resources:
+ * - AVFormatContext for format I/O operations
+ * - Bitstream filter context (implicitly via FFmpeg APIs)
+ * - Stream information through probing
+ *
+ * @param videoPath Path to the video file or streaming URL (RTSP/RTMP supported)
+ * @return AVFormatContext* Pointer to the initialized format context
+ * @throws std::runtime_error If file opening, stream info retrieval, or video stream detection fails
+ * @note The caller becomes responsible for closing the returned format context using
+ *       avformat_close_input() when finished
+ */
+AVFormatContext* VideoDecoder::open(const std::string &videoPath) {
+    // Initialize FFmpeg network protocols (for RTSP/RTMP streams)
+    avformat_network_init();
+
+    AVFormatContext* fmt_ctx = nullptr;
+
+    // Attempt to open video file
+    if (avformat_open_input(&fmt_ctx, videoPath.c_str(), nullptr, nullptr) < 0) {
+        std::cout << "Can't open file " << videoPath << std::endl;
+        throw std::runtime_error("Failed to open video file");
+    }
+
+    // Retrieve stream information (probes file format)
+    if (avformat_find_stream_info(fmt_ctx, nullptr) < 0) {
+        avformat_close_input(&fmt_ctx);  // Cleanup allocated context
+        throw std::runtime_error("Failed to retrieve stream information");
+    }
+
+    // Find best video stream index (auto-selects decoder)
+    const int video_stream_idx = av_find_best_stream(
+        fmt_ctx,                // Format context
+        AVMEDIA_TYPE_VIDEO,     // Media type: video
+        -1,                     // Auto-select stream index
+        -1,                     // No related streams
+        nullptr,                // No codec specified
+        0                       // Reserved flags
+    );
+
+    // Verify valid video stream found
+    if (video_stream_idx < 0) {
+        avformat_close_input(&fmt_ctx);
+        throw std::runtime_error("No video stream found in file");
+    }
+
+    return fmt_ctx;
+}
+
+
 /**
  * @brief The main decoding function for VideoDecoder.
  *
@@ -164,23 +222,53 @@ VideoDecoder::~VideoDecoder() {
  * @throws std::runtime_error if there are issues such as file opening failure, decoding failure, or target frame not found.
  */
 // Main decoding function
-DecodedFrame VideoDecoder::decode(const std::string& path, int target_frame) {
-    cuCtxSetCurrent(cu_ctx);
+DecodedFrame VideoDecoder::decode(const std::string &videoPath, const int target_frame) {
     DecodedFrame resultFrame;
-    // Stage 1: File initialization and stream discovery
-    fmt_ctx_ = FFmpegUtils::open_file(path.c_str());
-    const int video_stream_idx = FFmpegUtils::find_video_stream(fmt_ctx_);
-    AVStream* video_stream = fmt_ctx_->streams[video_stream_idx];
 
-    // Stage 2: Calculate target PTS and seek
-    const int64_t target_pts = FFmpegUtils::calculate_target_pts(video_stream, target_frame);
-    FFmpegUtils::seek_to_frame(fmt_ctx_, video_stream_idx, target_pts);
+    // Open video file and get format context
+    AVFormatContext* fmt_ctx = open(videoPath);
 
-    // Stage 3: Bitstream filter initialization
-    bsf_ctx_ = FFmpegUtils::create_bitstream_filter(
-        codec_type,
-        fmt_ctx_->streams[video_stream_idx]->codecpar
+    // Find video stream index (re-validate)
+    const int video_stream_idx = av_find_best_stream(
+        fmt_ctx, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    if (video_stream_idx < 0) {
+        avformat_close_input(&fmt_ctx);
+        throw std::runtime_error("Video stream validation failed");
+    }
+
+    // Calculate target timestamp from frame number
+    AVStream* video_stream = fmt_ctx->streams[video_stream_idx];
+    const double fps = av_q2d(video_stream->avg_frame_rate);           // Calculate FPS
+    const double target_time = target_frame / fps;                     // Target time (seconds)
+    const int64_t target_pts = av_rescale_q(                          // Convert timebase
+        static_cast<int64_t>(target_time * AV_TIME_BASE),
+        AV_TIME_BASE_Q,
+        video_stream->time_base
     );
+
+    // Seek to target position (backward search mode)
+    if (av_seek_frame(fmt_ctx, video_stream_idx, target_pts, AVSEEK_FLAG_BACKWARD) < 0) {
+        avformat_close_input(&fmt_ctx);
+        throw std::runtime_error("Frame seek operation failed");
+    }
+
+    // Initialize bitstream filter (H.264/H.265 require annex B format conversion)
+    const AVBitStreamFilter *bsf = nullptr;
+    AVBSFContext *bsfc = nullptr;
+    if (codec_type == AV_CODEC_ID_H264 || codec_type == AV_CODEC_ID_HEVC) {
+        const char* filter_name = (codec_type == AV_CODEC_ID_H264) ?
+            "h264_mp4toannexb" : "hevc_mp4toannexb";
+
+        bsf = av_bsf_get_by_name(filter_name);
+        if (!bsf) {
+            throw std::runtime_error("Bitstream filter not available");
+        }
+
+        // Initialize filter context
+        ck(av_bsf_alloc(bsf, &bsfc));
+        avcodec_parameters_copy(bsfc->par_in, fmt_ctx->streams[video_stream_idx]->codecpar);
+        ck(av_bsf_init(bsfc));
+    }
 
     try {
         std::vector<DecodedFrame> decodedFrames;
@@ -188,7 +276,7 @@ DecodedFrame VideoDecoder::decode(const std::string& path, int target_frame) {
         std::vector<std::tuple<CUdeviceptr, int64_t>> frameData;
 
         // Frame reading loop
-        while (av_read_frame(fmt_ctx_, pkt) >= 0) {
+        while (av_read_frame(fmt_ctx, pkt) >= 0) {
             // Clean filtered packet
             if (pktFiltered->data) {
                 av_packet_unref(pktFiltered);
@@ -208,20 +296,15 @@ DecodedFrame VideoDecoder::decode(const std::string& path, int target_frame) {
 
             current_pts = pkt->pts;
 
-            // Strict restoration of original filtering logic
-            AVPacket* processed_pkt = pkt;
             // Process video packet (bitstream filtering for H.264/H.265)
             if (codec_type == AV_CODEC_ID_H264 || codec_type == AV_CODEC_ID_HEVC) {
-                ck(av_bsf_send_packet(bsf_ctx_, pkt));
-                ck(av_bsf_receive_packet(bsf_ctx_, pktFiltered));
+                ck(av_bsf_send_packet(bsfc, pkt));
+                ck(av_bsf_receive_packet(bsfc, pktFiltered));
                 frameData = decoder->VideoDecode(pktFiltered->data, pktFiltered->size, CUVID_PKT_ENDOFPICTURE);
             } else {
                 frameData = decoder->VideoDecode(pkt->data, pkt->size, CUVID_PKT_ENDOFPICTURE);
             }
-            CUstream stream = decoder->GetStream();
-            if (!stream) {
-                throw std::runtime_error("CUDA stream is invalid");
-            }
+
             // Convert decoded data to frame structure
             std::transform(
                 frameData.begin(),
@@ -238,23 +321,23 @@ DecodedFrame VideoDecoder::decode(const std::string& path, int target_frame) {
                     // Build YUV memory view
                     frame.timestamp = timestamp;
                     // Y component view
-                    frame.views.push_back(CAIMemoryView(
-                        {static_cast<size_t>(height), static_cast<size_t>(width)},
-                        {static_cast<size_t>(width), static_cast<size_t>(1)},
-                        "|u1",
-                        reinterpret_cast<size_t>(decoder->GetStream()),
-                        std::get<0>(tup),
-                        true
-                    ));
+                    frame.views.push_back(CAIMemoryView{
+                        {height, width, 1},         // Shape
+                        {width, 1, 1},             // Strides
+                        "|u1",                     // Data type
+                        reinterpret_cast<size_t>(decoder->GetStream()),  // Stream ID
+                        data_ptr,                  // Data pointer
+                        false                      // Read-only flag
+                    });
                     // UV component view (assumes contiguous memory)
-                    frame.views.push_back(CAIMemoryView(
-                        {static_cast<size_t>(height), static_cast<size_t>(width)},
-                        {static_cast<size_t>(width), static_cast<size_t>(1)},
-                        "|u1",
+                    frame.views.push_back(CAIMemoryView{
+                        {height/2, width/2, 2},    // Shape
+                        {width/2*2, 2, 1},         // Strides
+                        "|u1",                     // Data type
                         reinterpret_cast<size_t>(decoder->GetStream()),
-                        std::get<0>(tup),
-                        true
-                    ));
+                        data_ptr + width * height,  // UV offset
+                        false
+                    });
 
                     // Load DLPack data (original implementation preserved)
                     std::vector<size_t> dl_shape{ static_cast<size_t>(height * 1.5), width };
@@ -268,9 +351,9 @@ DecodedFrame VideoDecoder::decode(const std::string& path, int target_frame) {
         }
 
         // Cleanup resources
-        avformat_close_input(&fmt_ctx_);
-        if (bsf_ctx_) {
-            av_bsf_free(&bsf_ctx_);
+        avformat_close_input(&fmt_ctx);
+        if (bsfc) {
+            av_bsf_free(&bsfc);
         }
 
         // Validate decoding results
@@ -281,9 +364,9 @@ DecodedFrame VideoDecoder::decode(const std::string& path, int target_frame) {
 
     } catch (...) {
         // Cleanup on exception
-        avformat_close_input(&fmt_ctx_);
-        if (bsf_ctx_) {
-            av_bsf_free(&bsf_ctx_);
+        avformat_close_input(&fmt_ctx);
+        if (bsfc) {
+            av_bsf_free(&bsfc);
         }
         throw std::runtime_error("Decoding process failed");
     }
