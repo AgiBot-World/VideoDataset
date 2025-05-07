@@ -608,6 +608,12 @@ class A2dVideoDataset(Dataset):
         )
         return results
 
+    def __del__(self):
+        if self.head_decoder:
+            del self.head_decoder
+        if self.decoder:
+            del self.decoder
+
 
 class A2dJoint2Eef:
     def __init__(self):
