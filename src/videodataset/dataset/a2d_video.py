@@ -3,27 +3,36 @@ import copy
 import json
 import glob
 import random
+import logging
+from tqdm import tqdm
 from typing import Any, List, Dict, Callable
 
 import h5py
 import torch
+import torch.distributed as dist
 import numpy as np
 from PIL import Image
 from pathlib import Path
 from torch.utils.data import Dataset
 
-# from videodataset.video_decoder import VideoDecoder
+from videodataset.video_decoder import VideoDecoder
+from videodataset.utils.video_util import nv12_to_rgb
 from videodataset.utils.image_util import dynamic_preprocess, build_transform
 from videodataset.utils.converstion_util import preprocess_internlm
 from . import Kinematics
 
 
+logger = logging.getLogger(__name__)
+
+
 class A2dVideoDataset(Dataset):
     def __init__(
         self,
+        ds_name: str,
         label_file_dir: str,
         data_root_dir: str,
-        use_cam_list: list = ["head", "hand_left", "hand_right"],
+        tasks: dict = {},
+        use_cam_list: list = ["head", "hand_right", "hand_left"],
         transforms: Callable | None = None,
         episode_transforms: Callable | None = None,
         action_chunk_size: int = 30,
@@ -47,13 +56,21 @@ class A2dVideoDataset(Dataset):
         normalize_type: str = "imagenet",
         num_image_token: int = 256,
         text_tokenizer=None,
-        device_id: int = 0,
+        device_id: int = -1,
         codec: str = "h265",
+        shuffle: bool = False,
+        world_size: int | None = None,
+        rank_id: int = 0,
+        sample_rate: int | None = None,
+        need_split_episode_by_rank: bool = False,
+        need_split_data_by_rank: bool = True,
     ):
         super().__init__()
+        self.ds_name = ds_name
         self.episode_transforms = episode_transforms
         self.transforms = transforms
         self.data_root_dir = data_root_dir
+        self.tasks = tasks
         self.use_cam_list = use_cam_list
         self.action_chunk_size = action_chunk_size
         self.action_shift = action_shift
@@ -77,22 +94,36 @@ class A2dVideoDataset(Dataset):
         self.normalize_type = normalize_type
         self.num_image_token = num_image_token
         self.text_tokenizer = text_tokenizer
+        self.shuffle = shuffle
+        self.world_size = world_size
+        self.rank_id = rank_id
+        self.sample_rate = sample_rate
+        self.need_split_episode_by_rank = need_split_episode_by_rank
+        self.need_split_data_by_rank = need_split_data_by_rank
 
-        # self.decoder = VideoDecoder(device_id, codec)
+        self.device_id = device_id if device_id != -1 else torch.cuda.current_device()
+        self.codec = codec
+        self.decoder = None
+        self.head_decoder = None
+
         self.episodes: dict[int, dict[str, Any]] = {}
         self.frames: List[dict] = []
 
         self.load_episodes(label_file_dir)
         self.load_meta()
-        self.load_states()
+
+        conventor = A2dJoint2Eef()
+        self.load_states(conventor)
 
         if self.episode_transforms:
-            self.episodes = {
-                ep_id: self.episode_transforms(ep)
-                for ep_id, ep in self.episodes.items()
-            }
+            self.process_episode_transform()
 
         self.load_frames()
+
+        if self.sample_rate is not None:
+            self.sample_frame()
+        if self.shuffle:
+            self.shuffle_sample()
 
     def get_episode_path(self, episode_info: Dict) -> str:
         return os.path.join(
@@ -111,7 +142,7 @@ class A2dVideoDataset(Dataset):
 
     def get_video_path(self, episode_info: Dict, cam_name: str) -> str:
         return os.path.join(
-            self.get_episode_path(episode_info), "videos", f"{cam_name}.mp4"
+            self.get_episode_path(episode_info), "videos", f"{cam_name}_color.mp4"
         )
 
     def load_episodes(self, label_file_dir: str) -> None:
@@ -120,12 +151,20 @@ class A2dVideoDataset(Dataset):
                 f"Label directory does not exist: {label_file_dir}"
             )
 
+        label_files = []
+        for task_cfg in self.tasks.values():
+            label_files.append(task_cfg["label_file_name"])
+
         json_files = glob.glob(os.path.join(label_file_dir, "*.json"), recursive=False)
 
+        self.episodes = {}
         for json_file in json_files:
+            json_file_name = Path(json_file).name
+            if json_file_name not in label_files:
+                continue
             try:
                 with open(json_file, "r", encoding="utf-8") as f:
-                    self.episodes = {ep["episode_id"]: ep for ep in json.load(f)}
+                    self.episodes.update({ep["episode_id"]: ep for ep in json.load(f)})
 
             except json.JSONDecodeError as e:
                 raise RuntimeError(f"JSON parsing failed: {json_file}") from e
@@ -135,6 +174,8 @@ class A2dVideoDataset(Dataset):
                 for act_step in episode["label_info"]["action_config"]
             ]
             episode["detailed_job_description"] = ";".join(all_action_desc)
+        self.split_episode_by_rank()
+        logger.info(f"Dataset {self.ds_name} load episodes {len(self.episodes)}.")
 
     def load_meta(self) -> None:
         for episode in self.episodes.values():
@@ -143,10 +184,12 @@ class A2dVideoDataset(Dataset):
                 with open(meta_path, "r", encoding="utf-8") as fid:
                     episode["meta_info"] = json.load(fid)
             except FileNotFoundError:
-                print(f"Warning: Meta file not found at {meta_path}")
-                episode["meta_info"] = {}
+                logger.error(f"Warning: Meta file not found at {meta_path}")
+        logger.info(f"Dataset {self.ds_name} load meta {len(self.episodes)} finish.")
 
-    def load_states(self) -> None:
+    def load_states(self, conventor) -> None:
+        pbar = tqdm(total=len(self.episodes), desc="Load states")
+        invalid_episodes = []
         for episode in self.episodes.values():
             state_file = self.get_state_path(episode)
             with h5py.File(state_file, "r") as fid:
@@ -172,20 +215,29 @@ class A2dVideoDataset(Dataset):
 
             all_left_eef = []
             all_right_eef = []
-            conventor = A2dJoint2Eef()
-            for f_idx in range(state["left_arm_abs_joint"].shape[0]):
-                left_eef, right_eef = conventor.get_eef_pos(
-                    waist_pitch=state["waist_abs_joint"][f_idx][0],
-                    waist_lift=state["waist_abs_lift"][f_idx][0],
-                    left_joints=state["left_arm_abs_joint"][f_idx],
-                    right_joints=state["right_arm_abs_joint"][f_idx],
-                    head_joints=state["head_abs_joint"][f_idx],
+            try:
+                for f_idx in range(state["left_arm_abs_joint"].shape[0]):
+                    left_eef, right_eef = conventor.get_eef_pos(
+                        waist_pitch=state["waist_abs_joint"][f_idx][0],
+                        waist_lift=state["waist_abs_lift"][f_idx][0],
+                        left_joints=state["left_arm_abs_joint"][f_idx],
+                        right_joints=state["right_arm_abs_joint"][f_idx],
+                        head_joints=state["head_abs_joint"][f_idx],
+                    )
+                    all_left_eef.append(left_eef)
+                    all_right_eef.append(right_eef)
+                state["left_effector_abs_pose"] = np.stack(all_left_eef)
+                state["right_effector_abs_pose"] = np.stack(all_right_eef)
+                episode["state"] = state
+            except Exception as e:
+                logger.error(
+                    f"[ERROR] episode {episode['episode_id']}, {self.get_episode_path(episode)}, error info: {e}"
                 )
-                all_left_eef.append(left_eef)
-                all_right_eef.append(right_eef)
-            state["left_effector_abs_pose"] = np.stack(all_left_eef)
-            state["right_effector_abs_pose"] = np.stack(all_right_eef)
-            episode["state"] = state
+                invalid_episodes.append(int(episode["episode_id"]))
+            pbar.update(1)
+        for invalid_episode in invalid_episodes:
+            del self.episodes[invalid_episode]
+        pbar.close()
 
     def load_frames(self) -> None:
         for episode in self.episodes.values():
@@ -206,6 +258,52 @@ class A2dVideoDataset(Dataset):
                             "action_idx": f"{action_idx}",
                         }
                     )
+        if self.world_size is not None:
+            self.frames = self.split_data_by_rank(self.frames)
+            dist.barrier()
+            original_length = len(self.frames)
+            shard_num = torch.tensor(
+                [original_length], dtype=torch.int64, device=torch.cuda.current_device()
+            )
+            dist.all_reduce(shard_num, op=dist.ReduceOp.MIN, async_op=False)
+            shard_num = shard_num.cpu().item()
+            self.frames = self.frames[:shard_num]
+
+    def process_episode_transform(self) -> None:
+        if not self.episode_transforms:
+            return
+        invalid_episodes = []
+        for ep_id, ep in self.episodes.items():
+            try:
+                ep = self.episode_transforms(ep)
+                self.episodes[ep_id] = ep
+            except Exception:
+                invalid_episodes.append(ep_id)
+        for invalid_episode in invalid_episodes:
+            del self.episodes[invalid_episode]
+
+    def split_episode_by_rank(self, shuffle=True):
+        episode_ids = [ep for ep in self.episodes.keys()]
+        if self.world_size is not None and self.need_split_episode_by_rank:
+            if shuffle:
+                random.shuffle(episode_ids)
+            sub_data_shard = {}
+            for idx, episode_id in enumerate(episode_ids):
+                if idx % self.world_size == self.rank_id:
+                    sub_data_shard[episode_id] = self.episodes[episode_id]
+            del episode_ids
+            self.episodes = sub_data_shard
+
+    def split_data_by_rank(self, data, shuffle=True):
+        if self.world_size is not None and self.need_split_data_by_rank:
+            if shuffle:
+                random.shuffle(data)
+            sub_data_shard = []
+            for idx, info in enumerate(data):
+                if idx % self.world_size == self.rank_id:
+                    sub_data_shard.append(info)
+
+            return sub_data_shard
 
     def get_action_and_state(self, sample: dict) -> None:
         episode_id = int(sample["episode_id"])
@@ -397,28 +495,60 @@ class A2dVideoDataset(Dataset):
         )
         return ret
 
+    def sample_frame(self):
+        frame_sampled = []
+        for idx, item in enumerate(self.frames):
+            if idx % self.sample_rate == 0:
+                frame_sampled.append(item)
+        del self.frames
+        self.frames = None
+        self.frames = frame_sampled
+
+    def shuffle_sample(self):
+        random.shuffle(self.frames)
+
     def __len__(self):
         return len(self.frames)
 
     def __getitem__(self, idx):
+        get_data_done = False
+        while not get_data_done:
+            try:
+                result = self.getitem(idx)
+                get_data_done = True
+            except Exception as error:
+                logger.error(f"process dataset idx: {idx}, error info: {error}")
+                idx = random.randint(0, len(self.frames) - 1)
+        return result
+
+    def getitem(self, idx):
         raw_sample = self.frames[idx]
         sample = copy.deepcopy(raw_sample)
+        episode_id = int(sample["episode_id"])
+        episode_info = self.episodes[episode_id]
+
+        if not self.decoder:
+            self.decoder = VideoDecoder(self.device_id, self.codec)
+        if not self.head_decoder:
+            self.head_decoder = VideoDecoder(self.device_id, self.codec)
 
         self.get_action_and_state(sample)
 
         images = []
-        """for cam_name in self.use_cam_list:
+        for cam_name in self.use_cam_list:
             video_path = self.get_video_path(episode_info, cam_name)
-            decoded_frame = self.decoder.decode(video_path, int(sample["frame_idx"]))
+            if "head_color" in video_path:
+                decoded_frame = self.head_decoder.decode(
+                    video_path, int(sample["frame_idx"])
+                )
+            else:
+                decoded_frame = self.decoder.decode(
+                    video_path, int(sample["frame_idx"])
+                )
             (height, width) = decoded_frame.shape
             src_tensor = torch.from_dlpack(decoded_frame)
             rgb_tensor = nv12_to_rgb(src_tensor, width, int(height / 1.5))
             rgb_tensor = rgb_tensor.cpu().numpy()
-            img = Image.fromarray(rgb_tensor, "RGB")
-            images.append(img)"""
-        for cam_name in self.use_cam_list:
-            rgb_tensor = torch.randn(640, 480, 3, dtype=torch.float32)
-            rgb_tensor = rgb_tensor.numpy()
             img = Image.fromarray(rgb_tensor, "RGB")
             images.append(img)
         sample["images"] = images
@@ -466,12 +596,14 @@ class A2dVideoDataset(Dataset):
         pixel_values = torch.stack(pixel_values)
         num_patches = pixel_values.size(0)
         results = self.get_token(sample, num_tiles, num_patches)
+        freq = torch.tensor([30.0], dtype=torch.float32)
         results.update(
             {
                 "action_gts": torch.tensor(action, dtype=torch.float32),
                 "action_mask": None,  # torch.tensor(action_mask, dtype=torch.float32),
                 "state": agent_state,
                 "pixel_values": pixel_values,
+                "ctrl_freqs": freq,
             }
         )
         return results

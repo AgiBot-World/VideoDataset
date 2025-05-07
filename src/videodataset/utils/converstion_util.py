@@ -56,7 +56,7 @@ class Conversation:
     # The names of two roles
     roles: Tuple[str, str] = ("USER", "ASSISTANT")
     # All messages. Each item is (role, message).
-    messages: List[List[str]] = []
+    messages: List[List[str]] = ()
     # The number of few shot examples
     offset: int = 0
     # The separator style and configurations
