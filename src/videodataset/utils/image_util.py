@@ -201,3 +201,13 @@ def dynamic_preprocess(
         thumbnail_img = image.resize((image_size, image_size))
         processed_images.append(thumbnail_img)
     return processed_images
+
+
+def build_latent_image_transform():
+    latent_transform = T.Compose(
+        [
+            T.Lambda(lambda img: img.convert("RGB") if img.mode != "RGB" else img),
+            T.Resize((224, 224)),
+        ]
+    )
+    return latent_transform

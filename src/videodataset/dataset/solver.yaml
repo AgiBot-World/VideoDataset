@@ -1,0 +1,28 @@
+# 优化器通用配置
+optimizer:
+  initial_step: 1e-2
+  xtol_rel: 1.0e-5    # 相对x容差
+  ftol_rel: 1.0e-5    # 相对f容差
+  maxeval: 200        # 最大迭代次数
+  maxtime: 0.005        # 最大求解时间(秒)
+
+# 目标函数权重配置
+standard_ik:
+  pos_weight: 40.0
+  ori_weight: 8.0
+  pos_elbow_weight: 10.0
+  ori_elbow_weight: 8.0
+  upper_arm_coef: 2.0  # 大臂（前三个关节）的权重系数
+  elbow_coef: 1.0     # 肘部关节的权重系数
+
+relaxed_ik:
+  pos_weight: 40.0
+  ori_weight: 8.0
+  min_velocity_weight: 1.0
+  min_acceleration_weight: 0.0
+  min_jerk_weight: 0.0
+  joint_limits_weight: 1.0
+  pos_elbow_weight: 0.0
+  ori_elbow_weight: 0.0
+  upper_arm_coef: 2.0  # 大臂（前三个关节）的权重系数
+  elbow_coef: 1.0     # 肘部关节的权重系数

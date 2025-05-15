@@ -17,9 +17,13 @@ from torch.utils.data import Dataset
 
 from videodataset.video_decoder import VideoDecoder
 from videodataset.utils.video_util import nv12_to_rgb
-from videodataset.utils.image_util import dynamic_preprocess, build_transform
+from videodataset.utils.image_util import (
+    dynamic_preprocess,
+    build_transform,
+    build_latent_image_transform,
+)
 from videodataset.utils.converstion_util import preprocess_internlm
-from . import Kinematics
+from videodataset.dataset.a2d_description import A2dJoint2Eef, A2dJoint2EefIK
 
 
 logger = logging.getLogger(__name__)
@@ -40,11 +44,27 @@ class A2dVideoDataset(Dataset):
         use_real_state: bool = False,
         joint_dof: int = 7,
         gripper_dof: int = 1,
-        gripper_source: str = "action",
+        wrench_dof: int = 6,
+        dexhand_dof: int = 6,
+        effector_source: str = "action",
+        state_noise_snr: float = 40,
+        add_noise_to_state: bool = False,
+        conventor_type: str = "ik_solver",
         action_use_delta: bool = True,
         delta_type: str = "frame",
         gripper_use_delta: bool = False,
+        remove_intervention: bool = False,
+        head_waist_use_delta: bool = True,
+        head_waist_norm_margin: list | None = None,
+        base_vel_use_norm: bool = False,
+        base_vel_norm_margin: list = [
+            1.5,
+            0.5,
+        ],  # [[base linear velocity upper limit, [base angular velocity upper limit]
+        base_pos_use_delta: bool = True,
         use_latent_action: bool = False,
+        use_action_mask: bool = False,
+        actionSpacePadder=None,
         prompt_mode_list: list = [0],
         dynamic_image_size: bool = False,
         is_train: bool = True,
@@ -77,12 +97,24 @@ class A2dVideoDataset(Dataset):
         self.use_real_state = use_real_state
         self.joint_dof = joint_dof
         self.gripper_dof = gripper_dof
-        self.gripper_source = gripper_source
+        self.wrench_dof = wrench_dof
+        self.dexhand_dof = dexhand_dof
+        self.effector_source = effector_source
+        self.state_noise_snr = state_noise_snr
+        self.add_noise_to_state = add_noise_to_state
+        self.conventor_type = conventor_type
         self.action_use_delta = action_use_delta
         self.delta_type = delta_type
         self.gripper_use_delta = gripper_use_delta
+        self.remove_intervention = remove_intervention
+        self.head_waist_use_delta = head_waist_use_delta
+        self.head_waist_norm_margin = head_waist_norm_margin
+        self.base_vel_use_norm = base_vel_use_norm
+        self.base_vel_norm_margin = base_vel_norm_margin
+        self.base_pos_use_delta = base_pos_use_delta
         self.use_latent_action = use_latent_action
-        self.ActionSpacePadder = ActionSpacePadder()
+        self.use_action_mask = use_action_mask
+        self.ActionSpacePadder = actionSpacePadder
         self.prompt_mode_list = prompt_mode_list
         self.dynamic_image_size = dynamic_image_size
         self.is_train = is_train
@@ -112,8 +144,11 @@ class A2dVideoDataset(Dataset):
         self.load_episodes(label_file_dir)
         self.load_meta()
 
-        conventor = A2dJoint2Eef()
-        self.load_states(conventor)
+        if self.conventor_type == "kinematics":
+            self.conventor = A2dJoint2Eef()
+        else:
+            self.conventor = A2dJoint2EefIK()
+        self.load_states(self.conventor)
 
         if self.episode_transforms:
             self.process_episode_transform()
@@ -191,21 +226,49 @@ class A2dVideoDataset(Dataset):
         pbar = tqdm(total=len(self.episodes), desc="Load states")
         invalid_episodes = []
         for episode in self.episodes.values():
+            state = {}
             state_file = self.get_state_path(episode)
             with h5py.File(state_file, "r") as fid:
                 all_abs_joint = np.array(fid["state/joint/position"], dtype=np.float32)
-                all_abs_gripper = np.array(
-                    fid[f"{self.gripper_source}/effector/position"], dtype=np.float32
+                all_abs_effector = np.array(
+                    fid[f"{self.effector_source}/effector/position"], dtype=np.float32
                 )
+                if all_abs_effector.shape[-1] == 2:
+                    all_abs_gripper = all_abs_effector
+                    state["left_arm_abs_gripper"] = all_abs_gripper[
+                        :, : self.gripper_dof
+                    ]
+                    state["right_arm_abs_gripper"] = all_abs_gripper[
+                        :, self.gripper_dof :
+                    ]
+                elif all_abs_effector.shape[-1] == 12:
+                    all_abs_dexhand = all_abs_effector
+                    state["left_arm_abs_dexhand"] = all_abs_dexhand[
+                        :, : self.dexhand_dof
+                    ]
+                    state["right_arm_abs_dexhand"] = all_abs_dexhand[
+                        :, self.dexhand_dof :
+                    ]
                 all_abs_head = np.array(fid["state/head/position"], dtype=np.float32)
                 all_abs_waist = np.array(fid["state/waist/position"], dtype=np.float32)
+                all_abs_base_vel = np.array(
+                    fid["action/robot/velocity"], dtype=np.float32
+                )
+                all_abs_base_pos = np.array(
+                    fid["state/robot/position"], dtype=np.float32
+                )
+                if "state/end/wrench" in fid:
+                    use_wrench = True
+                    all_abs_wrench = np.array(fid["state/end/wrench"], dtype=np.float32)
+                else:
+                    use_wrench = False
 
-            state = {}
             state["left_arm_abs_joint"] = all_abs_joint[:, : self.joint_dof]
             state["right_arm_abs_joint"] = all_abs_joint[:, self.joint_dof :]
-            state["left_arm_abs_gripper"] = all_abs_gripper[:, : self.gripper_dof]
-            state["right_arm_abs_gripper"] = all_abs_gripper[:, self.gripper_dof :]
             state["head_abs_joint"] = all_abs_head
+            if use_wrench:
+                state["left_abs_wrench"] = all_abs_wrench[:, : self.wrench_dof]
+                state["right_abs_wrench"] = all_abs_wrench[:, self.wrench_dof :]
             try:
                 state["waist_abs_joint"] = all_abs_waist[:, 0:1]
                 state["waist_abs_lift"] = all_abs_waist[:, 1:2]
@@ -213,8 +276,31 @@ class A2dVideoDataset(Dataset):
                 state["waist_abs_joint"] = np.zeros_like(all_abs_joint)[:, :1]
                 state["waist_abs_lift"] = np.zeros_like(all_abs_joint)[:, :1]
 
+            try:
+                state["base_linear_vel"] = all_abs_base_vel[:, 0:1]
+                state["base_angular_vel"] = all_abs_base_vel[:, 1:2]
+            except Exception:
+                state["base_linear_vel"] = np.zeros_like(all_abs_joint)[:, :1]
+                state["base_angular_vel"] = np.zeros_like(all_abs_joint)[:, :1]
+            try:
+                state["base_x_axis_pos"] = all_abs_base_pos[:, 0:1]
+                state["base_y_axis_pos"] = all_abs_base_pos[:, 1:2]
+            except Exception:
+                state["base_x_axis_pos"] = np.zeros_like(all_abs_joint)[:, :1]
+                state["base_y_axis_pos"] = np.zeros_like(all_abs_joint)[:, :1]
+            if self.add_noise_to_state:
+                state_noisy = {}
+                for key, value in state.items():
+                    std = np.std(value, axis=0)
+                    state_noisy[key] = value + np.random.normal(
+                        0, std / np.sqrt(10 ** (self.state_noise_snr / 10)), value.shape
+                    )
+                state = state_noisy
+
             all_left_eef = []
             all_right_eef = []
+            if self.conventor_type == "ik_solver":
+                conventor.reset()
             try:
                 for f_idx in range(state["left_arm_abs_joint"].shape[0]):
                     left_eef, right_eef = conventor.get_eef_pos(
@@ -304,6 +390,8 @@ class A2dVideoDataset(Dataset):
                     sub_data_shard.append(info)
 
             return sub_data_shard
+        else:
+            return data
 
     def get_action_and_state(self, sample: dict) -> None:
         episode_id = int(sample["episode_id"])
@@ -317,6 +405,13 @@ class A2dVideoDataset(Dataset):
         right_effector_pose_chunk = []
         left_arm_gripper_chunk = []
         right_arm_gripper_chunk = []
+        left_arm_hand_chunk = []
+        right_arm_hand_chunk = []
+        head_joint_chunk = []
+        waist_joint_chunk = []
+        waist_lift_chunk = []
+        base_linear_vel_chunk = []
+        base_angular_vel_chunk = []
 
         def normalize_angles(radius):
             radius_normed = np.mod(radius, 2 * np.pi) - 2 * np.pi * (
@@ -336,7 +431,57 @@ class A2dVideoDataset(Dataset):
                 target_action = normalize_angles(target_action)
             if tag_name in ["left_effector_abs_pose", "right_effector_abs_pose"]:
                 target_action[3:] = normalize_angles(target_action[3:])
+            if (
+                tag_name == "head_abs_joint"
+                and use_delta
+                and self.head_waist_norm_margin is not None
+            ):
+                target_action = np.clip(
+                    target_action,
+                    -np.array(self.head_waist_norm_margin[0]),
+                    np.array(self.head_waist_norm_margin[0]),
+                )
+                target_action = (
+                    target_action + np.array(self.head_waist_norm_margin[0])
+                ) / (2 * np.array(self.head_waist_norm_margin[0]))
 
+            if (
+                tag_name in ["waist_abs_joint", "waist_abs_lift"]
+                and use_delta
+                and self.head_waist_norm_margin is not None
+            ):
+                head_waist_joint_norm = np.array(self.head_waist_norm_margin)
+                if tag_name == "waist_abs_joint":
+                    target_action = np.clip(
+                        target_action,
+                        -head_waist_joint_norm[1][0],
+                        head_waist_joint_norm[1][0],
+                    )
+                    target_action = (target_action + head_waist_joint_norm[1][0]) / (
+                        2 * head_waist_joint_norm[1][0]
+                    )  # norm to 0 ~ 1
+                else:
+                    target_action = np.clip(
+                        target_action,
+                        -head_waist_joint_norm[1][1],
+                        head_waist_joint_norm[1][1],
+                    )
+                    target_action = (target_action + head_waist_joint_norm[1][1]) / (
+                        2 * head_waist_joint_norm[1][1]
+                    )  # norm to 0 ~ 1
+
+            if (
+                tag_name in ["base_linear_vel", "base_angular_vel"]
+                and self.base_vel_use_norm
+                and self.base_vel_norm_margin is not None
+            ):
+                base_vel_norm = np.array(self.base_vel_norm_margin)
+                idx = 0 if tag_name == "base_linear_vel" else 1
+                target_action = np.clip(
+                    target_action,
+                    -base_vel_norm[idx],
+                    base_vel_norm[idx],
+                )
             return target_action
 
         for i in range(self.action_chunk_size):
@@ -401,14 +546,96 @@ class A2dVideoDataset(Dataset):
                 )
             )
 
+            if "left_arm_abs_dexhand" in state:
+                left_arm_hand_chunk.append(
+                    get_target_action(
+                        state,
+                        base_idx,
+                        shift_idx,
+                        "left_arm_abs_dexhand",
+                        self.gripper_use_delta,
+                    )
+                )
+            if "right_arm_abs_dexhand" in state:
+                right_arm_hand_chunk.append(
+                    get_target_action(
+                        state,
+                        base_idx,
+                        shift_idx,
+                        "right_arm_abs_dexhand",
+                        self.gripper_use_delta,
+                    )
+                )
+            head_joint_chunk.append(
+                get_target_action(
+                    state,
+                    base_idx,
+                    shift_idx,
+                    "head_abs_joint",
+                    self.head_waist_use_delta,
+                )
+            )
+            waist_joint_chunk.append(
+                get_target_action(
+                    state,
+                    base_idx,
+                    shift_idx,
+                    "waist_abs_joint",
+                    self.head_waist_use_delta,
+                )
+            )
+            waist_lift_chunk.append(
+                get_target_action(
+                    state,
+                    base_idx,
+                    shift_idx,
+                    "waist_abs_lift",
+                    self.head_waist_use_delta,
+                )
+            )
+            base_linear_vel_chunk.append(
+                get_target_action(
+                    state,
+                    base_idx,
+                    shift_idx,
+                    "base_linear_vel",
+                    self.gripper_use_delta,
+                )
+            )
+            base_angular_vel_chunk.append(
+                get_target_action(
+                    state,
+                    base_idx,
+                    shift_idx,
+                    "base_angular_vel",
+                    self.gripper_use_delta,
+                )
+            )
         action_target = {
             "left_arm_joint_positions": np.array(left_arm_joint_chunk),
             "right_arm_joint_positions": np.array(right_arm_joint_chunk),
             "left_end_effector_6d_pose": np.array(left_effector_pose_chunk),
             "right_end_effector_6d_pose": np.array(right_effector_pose_chunk),
-            "left_gripper_joint_positions": np.array(left_arm_gripper_chunk),
-            "right_gripper_joint_positions": np.array(right_arm_gripper_chunk),
+            "head_joint_positions": np.array(head_joint_chunk),
+            "waist_joint_positions": np.array(waist_joint_chunk),
+            "waist_lift_positions": np.array(waist_lift_chunk),
+            "base_linear_velocities": np.array(base_linear_vel_chunk),
+            "base_angular_velocities": np.array(base_angular_vel_chunk),
         }
+        if len(left_arm_gripper_chunk) > 0 and len(right_arm_gripper_chunk) > 0:
+            action_target.update(
+                {
+                    "left_gripper_joint_positions": np.array(left_arm_gripper_chunk),
+                    "right_gripper_joint_positions": np.array(right_arm_gripper_chunk),
+                }
+            )
+        if len(left_arm_hand_chunk) > 0 and len(right_arm_hand_chunk) > 0:
+            action_target.update(
+                {
+                    "left_dexterous_hand_positions": np.array(left_arm_hand_chunk),
+                    "right_dexterous_hand_positions": np.array(right_arm_hand_chunk),
+                }
+            )
         agent_state = {
             "left_arm_joint_positions": state["left_arm_abs_joint"][
                 current_idx : current_idx + 1
@@ -431,13 +658,52 @@ class A2dVideoDataset(Dataset):
             "waist_lift_positions": state["waist_abs_lift"][
                 current_idx : current_idx + 1
             ],
-            "left_gripper_joint_positions": state["left_arm_abs_gripper"][
+            "base_linear_velocities": state["base_linear_vel"][
                 current_idx : current_idx + 1
             ],
-            "right_gripper_joint_positions": state["right_arm_abs_gripper"][
+            "base_angular_velocities": state["base_angular_vel"][
                 current_idx : current_idx + 1
             ],
         }
+        if "left_abs_wrench" in state:
+            agent_state.update(
+                {
+                    "left_abs_wrench": state["left_abs_wrench"][
+                        current_idx : current_idx + 1
+                    ],
+                }
+            )
+        if "right_abs_wrench" in state:
+            agent_state.update(
+                {
+                    "right_abs_wrench": state["right_abs_wrench"][
+                        current_idx : current_idx + 1
+                    ],
+                }
+            )
+
+        if "left_arm_abs_gripper" in state and "right_arm_abs_gripper" in state:
+            agent_state.update(
+                {
+                    "left_gripper_joint_positions": state["left_arm_abs_gripper"][
+                        current_idx : current_idx + 1
+                    ],
+                    "right_gripper_joint_positions": state["right_arm_abs_gripper"][
+                        current_idx : current_idx + 1
+                    ],
+                }
+            )
+        if "left_arm_abs_dexhand" in state and "right_arm_abs_dexhand" in state:
+            agent_state.update(
+                {
+                    "left_dexterous_hand_positions": state["left_arm_abs_dexhand"][
+                        current_idx : current_idx + 1
+                    ],
+                    "right_dexterous_hand_positions": state["right_arm_abs_dexhand"][
+                        current_idx : current_idx + 1
+                    ],
+                }
+            )
         sample["action_target"] = action_target
         sample["agent_state"] = agent_state
 
@@ -507,6 +773,29 @@ class A2dVideoDataset(Dataset):
     def shuffle_sample(self):
         random.shuffle(self.frames)
 
+    def decode_video_frame(self, episode_info, cam_name, frame_idx):
+        video_path = self.get_video_path(episode_info, cam_name)
+        if "head_color" in video_path:
+            decoded_frame = self.head_decoder.decode(video_path, frame_idx)
+        else:
+            decoded_frame = self.decoder.decode(video_path, frame_idx)
+        (height, width) = decoded_frame.shape
+        src_tensor = torch.from_dlpack(decoded_frame)
+        rgb_tensor = nv12_to_rgb(src_tensor, width, int(height / 1.5))
+        rgb_tensor = rgb_tensor.cpu().numpy()
+        return rgb_tensor
+
+    def decode_img_frame(self, episode_info, cam_name, frame_idx):
+        cam_file_path = os.path.join(
+            self.get_episode_path(episode_info),
+            "camera",
+            str(frame_idx),
+            cam_name + "_color.jpg",
+        )
+        img = Image.open(cam_file_path).convert("RGB")
+        rgb_tenfor = np.array(img)
+        return rgb_tenfor
+
     def __len__(self):
         return len(self.frames)
 
@@ -536,37 +825,52 @@ class A2dVideoDataset(Dataset):
 
         images = []
         for cam_name in self.use_cam_list:
-            video_path = self.get_video_path(episode_info, cam_name)
-            if "head_color" in video_path:
-                decoded_frame = self.head_decoder.decode(
-                    video_path, int(sample["frame_idx"])
-                )
-            else:
-                decoded_frame = self.decoder.decode(
-                    video_path, int(sample["frame_idx"])
-                )
-            (height, width) = decoded_frame.shape
-            src_tensor = torch.from_dlpack(decoded_frame)
-            rgb_tensor = nv12_to_rgb(src_tensor, width, int(height / 1.5))
-            rgb_tensor = rgb_tensor.cpu().numpy()
+            rgb_tensor = self.decode_video_frame(
+                episode_info, cam_name, sample["frame_idx"]
+            )
             img = Image.fromarray(rgb_tensor, "RGB")
             images.append(img)
         sample["images"] = images
+        img = self.decode_video_frame(episode_info, "head", sample["frame_idx"])
+        img = Image.fromarray(img, "RGB")
+        img_k = self.decode_video_frame(episode_info, "head", sample["target_idx"])
+        img_k = Image.fromarray(img_k, "RGB")
+        initial_pixel_values = build_latent_image_transform()(img)
+        target_pixel_values = build_latent_image_transform()(img_k)
+        initial_pixel_values = torch.from_numpy(
+            np.array(initial_pixel_values).astype(np.float32) / 255.0
+        ).permute(2, 0, 1)
+        target_pixel_values = torch.from_numpy(
+            np.array(target_pixel_values).astype(np.float32) / 255.0
+        ).permute(2, 0, 1)
+        video = torch.stack(
+            [initial_pixel_values, target_pixel_values], dim=0
+        ).unsqueeze(0)
+        sample["videos"] = video
+
         if self.transforms:
             sample = self.transforms(sample)
 
         if not self.use_latent_action:
-            action, _ = self.ActionSpacePadder.get_action(
+            if "left_gripper_joint_positions" in sample["agent_state"]:
+                sample["agent_state"].pop("left_gripper_joint_positions")
+            if "right_gripper_joint_positions" in sample["agent_state"]:
+                sample["agent_state"].pop("right_gripper_joint_positions")
+            if "base_linear_velocities" in sample["agent_state"]:
+                sample["agent_state"].pop("base_linear_velocities")
+            if "base_angular_velocities" in sample["agent_state"]:
+                sample["agent_state"].pop("base_angular_velocities")
+            action, action_mask = self.ActionSpacePadder.get_action(
                 sample["action_target"], chunk_size=self.action_chunk_size
             )
-            state, _ = self.ActionSpacePadder.get_action(
+            state, state_mask = self.ActionSpacePadder.get_state(
                 sample["agent_state"], chunk_size=1
             )
         else:
-            action, _ = self.ActionSpacePadder.get_action(
+            action, action_mask = self.ActionSpacePadder.get_action(
                 {}, chunk_size=self.action_chunk_size
             )
-            state, _ = self.ActionSpacePadder.get_action({}, chunk_size=1)
+            state, state_mask = self.ActionSpacePadder.get_state({}, chunk_size=1)
         agent_state = torch.tensor(state, dtype=torch.float32)
         if not self.use_real_state:
             agent_state = -1 * torch.ones_like(agent_state)
@@ -600,12 +904,26 @@ class A2dVideoDataset(Dataset):
         results.update(
             {
                 "action_gts": torch.tensor(action, dtype=torch.float32),
-                "action_mask": None,  # torch.tensor(action_mask, dtype=torch.float32),
+                "action_mask": torch.tensor(action_mask, dtype=torch.float32)
+                if self.use_action_mask
+                else None,
                 "state": agent_state,
+                "state_mask": (
+                    torch.tensor(state_mask, dtype=torch.float32)
+                    if self.use_action_mask
+                    else None
+                ),
                 "pixel_values": pixel_values,
                 "ctrl_freqs": freq,
+                "videos": sample["videos"],
+                "task_ids": torch.tensor(
+                    [int(episode_info["task_id"])], dtype=torch.int32
+                ),
             }
         )
+        # results.update(
+        #    {"episode_id": episode_id, "frame_idx": int(sample["frame_idx"])}
+        # )
         return results
 
     def __del__(self):
@@ -613,25 +931,6 @@ class A2dVideoDataset(Dataset):
             del self.head_decoder
         if self.decoder:
             del self.decoder
-
-
-class A2dJoint2Eef:
-    def __init__(self):
-        self.kinematics = Kinematics(
-            (Path(__file__).parent / "A2D_viz.urdf").as_posix()
-        )
-
-    def get_eef_pos(
-        self, waist_pitch, waist_lift, left_joints, right_joints, head_joints=None
-    ):
-        init_arm_joint_angles = np.concatenate([left_joints, right_joints], axis=0)
-
-        left_end_eef, right_end_eef = self.kinematics.compute_arm_fk(
-            init_arm_joint_angles,
-            waist_pitch,
-            waist_lift,
-        )
-        return left_end_eef, right_end_eef
 
 
 class UniformAction:
@@ -721,6 +1020,3 @@ class ActionSpacePadder:
                     )
 
         return action, mask
-
-
-ActionSpacePadder.get_space()
