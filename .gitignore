@@ -3,10 +3,11 @@
 *.un~
 .DS_Store
 Pipfile*
+_skbuild
 launch.json
 output
 public
-_skbuild
+tests/testdata/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

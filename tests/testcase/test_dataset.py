@@ -1,14 +1,22 @@
 import os
 import torch
 from pathlib import Path
+import pytest
 
 from transformers import AutoTokenizer
 from videodataset.dataset import A2dVideoDataset
 from videodataset.dataset.a2d_transform import runtime_transform, episode_transform
 
 
-def test_dataset():
-    parent_dir = Path(__file__).parent.parent
+@pytest.fixture
+def parent_dir(request):
+    parent_dir = os.environ.get("TEST_PARENT_DIR")
+    if parent_dir:
+        return Path(parent_dir)
+    return Path(__file__).parent.parent
+
+
+def test_dataset(parent_dir):
     label_file_dir = os.path.join(parent_dir, "testdata", "labels")
     data_root_dir = os.path.join(parent_dir, "testdata", "data")
     tokenizer_path = os.path.join(parent_dir, "testdata", "model")
