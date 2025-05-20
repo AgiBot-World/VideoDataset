@@ -1,4 +1,5 @@
 import os
+import cv2
 import copy
 import json
 import glob
@@ -69,6 +70,8 @@ class A2dVideoDataset(Dataset):
         dynamic_image_size: bool = False,
         is_train: bool = True,
         image_size: int = 448,
+        use_depth: bool = False,
+        depth_size: tuple = (448, 448),
         pad2square: bool = False,
         use_thumbnail=False,
         min_dynamic_patch=1,
@@ -119,6 +122,8 @@ class A2dVideoDataset(Dataset):
         self.dynamic_image_size = dynamic_image_size
         self.is_train = is_train
         self.image_size = image_size
+        self.use_depth = use_depth
+        self.depth_size = depth_size
         self.pad2square = pad2square
         self.use_thumbnail = use_thumbnail
         self.min_dynamic_patch = min_dynamic_patch
@@ -260,6 +265,10 @@ class A2dVideoDataset(Dataset):
                 if "state/end/wrench" in fid:
                     use_wrench = True
                     all_abs_wrench = np.array(fid["state/end/wrench"], dtype=np.float32)
+                    if len(all_abs_wrench) == 0:
+                        use_wrench = False
+                    else:
+                        use_wrench = True
                 else:
                     use_wrench = False
 
@@ -780,6 +789,7 @@ class A2dVideoDataset(Dataset):
         else:
             decoded_frame = self.decoder.decode(video_path, frame_idx)
         (height, width) = decoded_frame.shape
+        # print(f"{video_path}, shape:{height},{width}", flush=True)
         src_tensor = torch.from_dlpack(decoded_frame)
         rgb_tensor = nv12_to_rgb(src_tensor, width, int(height / 1.5))
         rgb_tensor = rgb_tensor.cpu().numpy()
@@ -826,14 +836,32 @@ class A2dVideoDataset(Dataset):
         images = []
         for cam_name in self.use_cam_list:
             rgb_tensor = self.decode_video_frame(
-                episode_info, cam_name, sample["frame_idx"]
+                episode_info, cam_name, int(sample["frame_idx"])
             )
             img = Image.fromarray(rgb_tensor, "RGB")
             images.append(img)
         sample["images"] = images
-        img = self.decode_video_frame(episode_info, "head", sample["frame_idx"])
+        if self.use_depth:
+            depth_path = os.path.join(
+                self.get_episode_path(episode_info),
+                "camera",
+                sample["frame_idx"],
+                "head_depth.png",
+            )
+            depth_tensor = cv2.imread(depth_path, cv2.IMREAD_UNCHANGED).astype(
+                np.float64
+            )
+            depth_tensor = cv2.resize(depth_tensor, self.depth_size).reshape(
+                1, self.depth_size[0], self.depth_size[1]
+            )
+            depth_tensor = (depth_tensor / 1000.0).clip(0, 3) / 3
+            depth_tensor = torch.tensor(
+                depth_tensor[None].repeat(3, axis=1), dtype=torch.float32
+            )
+            sample["depth_tensor_head_depth"] = depth_tensor
+        img = self.decode_video_frame(episode_info, "head", int(sample["frame_idx"]))
         img = Image.fromarray(img, "RGB")
-        img_k = self.decode_video_frame(episode_info, "head", sample["target_idx"])
+        img_k = self.decode_video_frame(episode_info, "head", int(sample["target_idx"]))
         img_k = Image.fromarray(img_k, "RGB")
         initial_pixel_values = build_latent_image_transform()(img)
         target_pixel_values = build_latent_image_transform()(img_k)
@@ -915,15 +943,18 @@ class A2dVideoDataset(Dataset):
                 ),
                 "pixel_values": pixel_values,
                 "ctrl_freqs": freq,
-                "videos": sample["videos"],
                 "task_ids": torch.tensor(
                     [int(episode_info["task_id"])], dtype=torch.int32
                 ),
             }
         )
-        # results.update(
-        #    {"episode_id": episode_id, "frame_idx": int(sample["frame_idx"])}
-        # )
+        if "videos" in sample:
+            results["videos"] = sample["videos"]
+        if "depth_tensor_head_depth" in sample:
+            results["depth_values"] = sample["depth_tensor_head_depth"]
+        results.update(
+            {"episode_id": episode_id, "frame_idx": int(sample["frame_idx"])}
+        )
         return results
 
     def __del__(self):

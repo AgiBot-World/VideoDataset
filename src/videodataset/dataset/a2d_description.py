@@ -26,16 +26,19 @@ class A2dJoint2Eef:
         return left_end_eef, right_end_eef
 
 
+urdf_path = str(Path(__file__).parent / "A2D_ik.urdf")
+config_path = str(Path(__file__).parent / "solver.yaml")
+
+SOLVER = ik_solver.Solver(
+    urdf_path=urdf_path,
+    config_path=config_path,
+    use_relaxed_ik=False,
+    use_elbow=False,
+)
+
+
 class A2dJoint2EefIK:
     def __init__(self, use_relaxed_ik=False, use_elbow=False):
-        urdf_path = str(Path(__file__).parent / "A2D_ik.urdf")
-        config_path = str(Path(__file__).parent / "solver.yaml")
-        self.solver = ik_solver.Solver(
-            urdf_path=urdf_path,
-            config_path=config_path,
-            use_relaxed_ik=use_relaxed_ik,
-            use_elbow=use_elbow,
-        )
         self.initialize = False
 
     def reset(self):
@@ -44,8 +47,9 @@ class A2dJoint2EefIK:
     def get_eef_pos(
         self, waist_pitch, waist_lift, left_joints, right_joints, head_joints
     ):
+        global SOLVER
         if not self.initialize:
-            self.solver.initialize_states(
+            SOLVER.initialize_states(
                 left_arm_init=np.array(left_joints, dtype=np.float32),
                 right_arm_init=np.array(right_joints, dtype=np.float32),
                 head_init=np.array(head_joints, dtype=np.float32),
@@ -60,10 +64,10 @@ class A2dJoint2EefIK:
                 right_joints,
             ]
         )
-        T_arm_left_ee = self.solver.compute_fk(
+        T_arm_left_ee = SOLVER.compute_fk(
             q=Q_full, start_link="arm_base_link", end_link="arm_left_link7"
         )
-        T_arm_right_ee = self.solver.compute_fk(
+        T_arm_right_ee = SOLVER.compute_fk(
             q=Q_full, start_link="arm_base_link", end_link="arm_right_link7"
         )
 
