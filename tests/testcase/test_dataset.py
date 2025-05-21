@@ -5,6 +5,7 @@ import pytest
 
 from transformers import AutoTokenizer
 from videodataset.dataset import A2dVideoDataset
+from videodataset.dataset.a2d_video import ActionSpacePadder
 from videodataset.dataset.a2d_transform import runtime_transform, episode_transform
 
 
@@ -14,6 +15,26 @@ def parent_dir(request):
     if parent_dir:
         return Path(parent_dir)
     return Path(__file__).parent.parent
+
+
+class ActionSpacePadderArguments(ActionSpacePadder):
+    action_space_used: list = [
+        # "LEFT_ARM_JOINT_POSITIONS",
+        "LEFT_END_EFFECTOR_6D_POSE",
+        "LEFT_GRIPPER_JOINT_POSITIONS",
+        "RIGHT_END_EFFECTOR_6D_POSE",
+        "RIGHT_GRIPPER_JOINT_POSITIONS",
+    ]
+    state_space_used: list = [
+        # "RIGHT_END_EFFECTOR_6D_POSE",
+        # "RIGHT_GRIPPER_JOINT_POSITIONS",
+        # "RIGHT_ARM_JOINT_POSITIONS",
+        # "RIGHT_END_EFFECTOR_6D_POSE",
+        # "RIGHT_GRIPPER_JOINT_POSITIONS",
+    ]
+
+
+ActionSpacePadderArguments.get_space()
 
 
 def test_dataset(parent_dir):
@@ -34,6 +55,7 @@ def test_dataset(parent_dir):
         text_tokenizer=tokenizer,
         sample_rate=700,
         shuffle=True,
+        actionSpacePadder=ActionSpacePadderArguments(),
     )
 
     assert len(dataset.episodes) == 2
@@ -121,3 +143,7 @@ def test_dataset(parent_dir):
         num += 1
         if num > 10:
             break
+
+
+if __name__ == "__main__":
+    test_dataset(Path(__file__).parent.parent)

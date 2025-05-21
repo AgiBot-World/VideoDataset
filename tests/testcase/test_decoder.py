@@ -1,6 +1,16 @@
+import os
 import pytest
 
+from pathlib import Path
 from videodataset import video_decoder
+
+
+@pytest.fixture
+def parent_dir(request):
+    parent_dir = os.environ.get("TEST_PARENT_DIR")
+    if parent_dir:
+        return Path(parent_dir)
+    return Path(__file__).parent.parent
 
 
 def test_init():
@@ -19,10 +29,17 @@ def test_invalid_gpu():
     assert "GPU ordinal out of range" in str(exc_info.value)
 
 
-def test_open_file():
+def test_open_file(parent_dir):
     # Create decoder instance with GPU ID 0 and H.265 codec
     decoder = video_decoder.VideoDecoder(0, "h265")
-    decoder.decode("/mnt/yanzhaodong/data/video/test.mp4", 0)
+    decoder.decode(
+        os.path.join(
+            parent_dir,
+            "testdata/data/640/10589/A2D0015AB00172/845949/videos",
+            "head_color.mp4",
+        ),
+        0,
+    )
 
 
 def test_open_invalid_file():

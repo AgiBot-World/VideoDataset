@@ -977,6 +977,7 @@ class UniformAction:
     RIGHT_END_EFFECTOR_VELOCITIES = ("right_end_effector_velocities", 3)
     RIGHT_END_EFFECTOR_ANGULAR_VELOCITIES = ("right_end_effector_angular_velocities", 3)
 
+    RIGHT_ABS_WRENCH = ("right_abs_wrench", 6)
     # Left Arm
     LEFT_ARM_JOINT_POSITIONS = ("left_arm_joint_positions", 7)
     LEFT_END_EFFECTOR_6D_POSE = ("left_end_effector_6d_pose", 6)
@@ -989,57 +990,83 @@ class UniformAction:
     LEFT_END_EFFECTOR_VELOCITIES = ("left_end_effector_velocities", 3)
     LEFT_END_EFFECTOR_ANGULAR_VELOCITIES = ("left_end_effector_angular_velocities", 3)
 
+    LEFT_ABS_WRENCH = ("left_abs_wrench", 6)
     # BODY
     HEAD_JOINT_POSITIONS = ("head_joint_positions", 2)
     WAIST_LIFT_POSITIONS = ("waist_lift_positions", 1)
     WAIST_JOINT_POSITIONS = ("waist_joint_positions", 1)
 
-    BASE_LINEAR_VELOCITIES = ("base_linear_velocities", 2)
+    BASE_LINEAR_VELOCITIES = ("base_linear_velocities", 1)
     BASE_ANGULAR_VELOCITIES = ("base_angular_velocities", 1)
+
+    BASE_X_AXIS_POSITIONS = ("base_x_axis_positions", 1)
+    BASE_Y_AXIS_POSITIONS = ("base_y_axis_positions", 1)
 
 
 class ActionSpacePadder:
     action_space: dict = {}
     action_space_len = 0
-    space_used_left = [
-        "LEFT_END_EFFECTOR_6D_POSE",
-        "LEFT_GRIPPER_JOINT_POSITIONS",
-    ]
-    space_used_right = [
-        "RIGHT_END_EFFECTOR_6D_POSE",
-        "RIGHT_GRIPPER_JOINT_POSITIONS",
-    ]
-    space_used_body: list = []
+    state_space: dict = {}
+    state_space_len = 0
 
     @classmethod
     def get_space(
         cls,
     ):
-        cls.space_used = (
-            cls.space_used_left + cls.space_used_right + cls.space_used_body
-        )
-
         for attribute_name in sorted(dir(UniformAction)):
-            if not attribute_name.startswith("__") and attribute_name in cls.space_used:
-                attribute_value = getattr(UniformAction, attribute_name)
-                cls.action_space.update(
-                    {
-                        attribute_value[0]: (
-                            cls.action_space_len,
-                            cls.action_space_len + attribute_value[1],
-                        )
-                    }
-                )
-                cls.action_space_len += attribute_value[1]
+            if not attribute_name.startswith("__"):
+                if attribute_name in cls.action_space_used:
+                    attribute_value = getattr(UniformAction, attribute_name)
+                    cls.action_space.update(
+                        {
+                            attribute_value[0]: (
+                                cls.action_space_len,
+                                cls.action_space_len + attribute_value[1],
+                            )
+                        }
+                    )
+                    cls.action_space_len += attribute_value[1]
+                if attribute_name in cls.state_space_used:
+                    attribute_value = getattr(UniformAction, attribute_name)
+                    cls.state_space.update(
+                        {
+                            attribute_value[0]: (
+                                cls.state_space_len,
+                                cls.state_space_len + attribute_value[1],
+                            )
+                        }
+                    )
+                    cls.state_space_len += attribute_value[1]
+
+        # Aligning the length of state and the length of action
+        if cls.state_space_len > cls.action_space_len:
+            raise NotImplementedError(
+                "Currently does not support state length exceeding action"
+            )
+        elif cls.state_space_len != cls.action_space_len:
+            logger.warning(
+                "State dimension and action dimension do not match, forcing alignment"
+            )
+            cls.state_space_len = cls.action_space_len
+
+    @classmethod
+    def get_state(cls, targets, chunk_size=1):
+        return cls.pad_action(targets, cls.state_space, cls.state_space_len, chunk_size)
 
     @classmethod
     def get_action(cls, targets, chunk_size=30):
-        action = np.zeros((chunk_size, cls.action_space_len), dtype=np.float32)
-        mask = np.zeros((1, cls.action_space_len), dtype=np.float32)
+        return cls.pad_action(
+            targets, cls.action_space, cls.action_space_len, chunk_size
+        )
+
+    @classmethod
+    def pad_action(cls, targets, sapce_dict, space_len, chunk_size):
+        action = np.zeros((chunk_size, space_len), dtype=np.float32)
+        mask = np.zeros((1, space_len), dtype=np.float32)
         for key, value in targets.items():
-            if key in cls.action_space:
+            if key in sapce_dict:
                 value = np.array(value)
-                start_idx, max_idx = cls.action_space[key]
+                start_idx, max_idx = sapce_dict[key]
                 if value.shape[-1] <= (max_idx - start_idx):
                     action[:, start_idx : start_idx + value.shape[-1]] = value
                     mask[0, start_idx : start_idx + value.shape[-1]] = np.ones_like(
