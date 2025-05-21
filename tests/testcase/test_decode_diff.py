@@ -1,4 +1,6 @@
 import multiprocessing as mp
+import os
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -164,7 +166,7 @@ class MyDataset(Dataset):
 
 def test_decode_diff():
     gpuid = 0
-    random_video_file = "randomvideo"
+    random_video_file = os.path.join(Path(__file__).parent, "randomvideo")
     output_dir = "output"
 
     datas = []

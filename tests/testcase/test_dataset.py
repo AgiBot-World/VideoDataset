@@ -1,20 +1,11 @@
 import os
 import torch
 from pathlib import Path
-import pytest
 
 from transformers import AutoTokenizer
 from videodataset.dataset import A2dVideoDataset
+from videodataset.dataset.a2d_transform import episode_transform, runtime_transform
 from videodataset.dataset.a2d_video import ActionSpacePadder
-from videodataset.dataset.a2d_transform import runtime_transform, episode_transform
-
-
-@pytest.fixture
-def parent_dir(request):
-    parent_dir = os.environ.get("TEST_PARENT_DIR")
-    if parent_dir:
-        return Path(parent_dir)
-    return Path(__file__).parent.parent
 
 
 class ActionSpacePadderArguments(ActionSpacePadder):
@@ -38,9 +29,9 @@ ActionSpacePadderArguments.get_space()
 
 
 def test_dataset(parent_dir):
-    label_file_dir = os.path.join(parent_dir, "testdata", "labels")
-    data_root_dir = os.path.join(parent_dir, "testdata", "data")
-    tokenizer_path = os.path.join(parent_dir, "testdata", "model")
+    label_file_dir = os.path.join(parent_dir, "test_dataset", "labels")
+    data_root_dir = os.path.join(parent_dir, "test_dataset", "data")
+    tokenizer_path = os.path.join(parent_dir, "test_dataset", "model")
 
     tokenizer = AutoTokenizer.from_pretrained(
         tokenizer_path, add_eos_token=False, trust_remote_code=True, use_fast=False

@@ -6,5 +6,6 @@ ci:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   script:
-    - make lint build
+    - pip install -e .
+    - make lint test build
   stage: ci
