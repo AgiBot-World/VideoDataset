@@ -963,8 +963,45 @@ class A2dVideoDataset(Dataset):
         )
         if "videos" in sample:
             results["videos"] = sample["videos"]
+
+        results["depth_dict"] = {}
         if "depth_tensor_head_depth" in sample:
-            results["depth_values"] = sample["depth_tensor_head_depth"]
+            results["depth_dict"]["head_depth_values"] = sample[
+                "depth_tensor_head_depth"
+            ]
+        if "depth_tensor_hand_left_depth" in sample:
+            results["depth_dict"]["hand_left_depth_values"] = sample[
+                "depth_tensor_hand_left_depth"
+            ]
+        if "depth_tensor_hand_right_depth" in sample:
+            results["depth_dict"]["hand_right_depth_values"] = sample[
+                "depth_tensor_hand_right_depth"
+            ]
+
+        if "head_depth_point_cloud" in sample:
+            results["depth_dict"]["head_depth_point_cloud"] = sample[
+                "head_depth_point_cloud"
+            ]
+        if "head_color_point_cloud" in sample:
+            results["depth_dict"]["head_color_point_cloud"] = sample[
+                "head_color_point_cloud"
+            ]
+        if "hand_left_depth_point_cloud" in sample:
+            results["depth_dict"]["hand_left_depth_point_cloud"] = sample[
+                "hand_left_depth_point_cloud"
+            ]
+        if "hand_left_color_point_cloud" in sample:
+            results["depth_dict"]["hand_left_color_point_cloud"] = sample[
+                "hand_left_color_point_cloud"
+            ]
+        if "hand_right_depth_point_cloud" in sample:
+            results["depth_dict"]["hand_right_depth_point_cloud"] = sample[
+                "hand_right_depth_point_cloud"
+            ]
+        if "hand_right_color_point_cloud" in sample:
+            results["depth_dict"]["hand_right_color_point_cloud"] = sample[
+                "hand_right_color_point_cloud"
+            ]
         results.update(
             {"episode_id": episode_id, "frame_idx": int(sample["frame_idx"])}
         )
