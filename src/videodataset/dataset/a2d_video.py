@@ -50,6 +50,7 @@ class A2dVideoDataset(Dataset):
         effector_source: str = "action",
         state_noise_snr: float = 40,
         add_noise_to_state: bool = False,
+        use_hand_s6: bool = False,
         conventor_type: str = "ik_solver",
         action_use_delta: bool = True,
         delta_type: str = "frame",
@@ -105,6 +106,7 @@ class A2dVideoDataset(Dataset):
         self.effector_source = effector_source
         self.state_noise_snr = state_noise_snr
         self.add_noise_to_state = add_noise_to_state
+        self.use_hand_s6 = use_hand_s6
         self.conventor_type = conventor_type
         self.action_use_delta = action_use_delta
         self.delta_type = delta_type
@@ -235,25 +237,36 @@ class A2dVideoDataset(Dataset):
             state_file = self.get_state_path(episode)
             with h5py.File(state_file, "r") as fid:
                 all_abs_joint = np.array(fid["state/joint/position"], dtype=np.float32)
-                all_abs_effector = np.array(
-                    fid[f"{self.effector_source}/effector/position"], dtype=np.float32
-                )
-                if all_abs_effector.shape[-1] == 2:
-                    all_abs_gripper = all_abs_effector
-                    state["left_arm_abs_gripper"] = all_abs_gripper[
-                        :, : self.gripper_dof
-                    ]
-                    state["right_arm_abs_gripper"] = all_abs_gripper[
-                        :, self.gripper_dof :
-                    ]
-                elif all_abs_effector.shape[-1] == 12:
-                    all_abs_dexhand = all_abs_effector
-                    state["left_arm_abs_dexhand"] = all_abs_dexhand[
-                        :, : self.dexhand_dof
-                    ]
-                    state["right_arm_abs_dexhand"] = all_abs_dexhand[
-                        :, self.dexhand_dof :
-                    ]
+                if self.use_hand_s6:
+                    state["left_arm_abs_dexhand"] = np.array(
+                        fid[f"{self.effector_source}/left_effector/position"],
+                        dtype=np.float32,
+                    )
+                    state["right_arm_abs_dexhand"] = np.array(
+                        fid[f"{self.effector_source}/right_effector/position"],
+                        dtype=np.float32,
+                    )
+                else:
+                    all_abs_effector = np.array(
+                        fid[f"{self.effector_source}/effector/position"],
+                        dtype=np.float32,
+                    )
+                    if all_abs_effector.shape[-1] == 2:
+                        all_abs_gripper = all_abs_effector
+                        state["left_arm_abs_gripper"] = all_abs_gripper[
+                            :, : self.gripper_dof
+                        ]
+                        state["right_arm_abs_gripper"] = all_abs_gripper[
+                            :, self.gripper_dof :
+                        ]
+                    elif all_abs_effector.shape[-1] == 12:
+                        all_abs_dexhand = all_abs_effector
+                        state["left_arm_abs_dexhand"] = all_abs_dexhand[
+                            :, : self.dexhand_dof
+                        ]
+                        state["right_arm_abs_dexhand"] = all_abs_dexhand[
+                            :, self.dexhand_dof :
+                        ]
                 all_abs_head = np.array(fid["state/head/position"], dtype=np.float32)
                 all_abs_waist = np.array(fid["state/waist/position"], dtype=np.float32)
                 all_abs_base_vel = np.array(
