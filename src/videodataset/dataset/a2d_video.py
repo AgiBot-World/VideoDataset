@@ -122,6 +122,8 @@ class A2dVideoDataset(Dataset):
         self.ActionSpacePadder = actionSpacePadder
         self.prompt_mode_list = prompt_mode_list
         self.dynamic_image_size = dynamic_image_size
+        self.cam_prefix = "cam_tensor_"
+        self.cam_suffix = "_color"
         self.is_train = is_train
         self.image_size = image_size
         self.use_depth = use_depth
@@ -846,14 +848,12 @@ class A2dVideoDataset(Dataset):
 
         self.get_action_and_state(sample)
 
-        images = []
         for cam_name in self.use_cam_list:
             rgb_tensor = self.decode_video_frame(
                 episode_info, cam_name, int(sample["frame_idx"])
             )
             img = Image.fromarray(rgb_tensor, "RGB")
-            images.append(img)
-        sample["images"] = images
+            sample[self.cam_prefix + cam_name + self.cam_suffix] = img
         if self.use_depth:
             depth_path = os.path.join(
                 self.get_episode_path(episode_info),
@@ -923,10 +923,19 @@ class A2dVideoDataset(Dataset):
             normalize_type=self.normalize_type,
         )
         images, num_tiles = [], []
-        if self.dynamic_image_size:
-            for img in sample["images"]:
+        cam_keys: List[str] = [
+            "cam_tensor_head_color",
+            "cam_tensor_hand_right_fisheye_color",
+            "cam_tensor_hand_left_fisheye_color",
+            "cam_tensor_hand_right_color",
+            "cam_tensor_hand_left_color",
+        ]
+        for cam_key in cam_keys:
+            if cam_key not in sample:
+                continue
+            if self.dynamic_image_size:
                 image = dynamic_preprocess(
-                    img,
+                    sample[cam_key],
                     min_num=self.min_dynamic_patch,
                     max_num=self.max_dynamic_patch,
                     image_size=self.image_size,
@@ -934,9 +943,9 @@ class A2dVideoDataset(Dataset):
                 )
                 images += image
                 num_tiles.append(len(image))
-        else:
-            images = sample["images"]
-            num_tiles = [1] * len(images)
+            else:
+                images.append(sample[cam_key])
+                num_tiles.append(1)
         pixel_values = [img_transform(image) for image in images]
         pixel_values = torch.stack(pixel_values)
         num_patches = pixel_values.size(0)

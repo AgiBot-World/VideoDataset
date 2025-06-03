@@ -154,16 +154,17 @@ class EpisodeProcessorRelableStaticFrames:
 class RuntimeImageResize:
     def __init__(self, size=(224, 224)):
         # image shape: [C,H,W]
+        self.source_key = "cam_tensor_"
         self.size = size
 
-    def __call__(self, sample):
-        images = sample["images"]
-        new_images = []
-        for image in images:
-            img = image.resize(self.size)
-            new_images.append(img)
-        sample["images"] = new_images
-        return sample
+    def __call__(self, inputs):
+        keys = list(inputs.keys())
+        for key in keys:
+            if self.source_key in key:
+                img = inputs[key].resize(self.size)
+                inputs[key] = img
+
+        return inputs
 
 
 class RuntimeImageAugColorJitter:
@@ -176,21 +177,20 @@ class RuntimeImageAugColorJitter:
         hue=0.03,
     ):
         self.prob_to_process = prob_to_process
+        self.source_key = "cam_tensor_"
         self.color_jitter = transforms.ColorJitter(
             brightness=brightness, contrast=contrast, saturation=saturation, hue=hue
         )
 
-    def __call__(self, sample):
-        images = sample["images"]
-        new_images = []
-        for image in images:
-            if random.random() < self.prob_to_process:
-                img = self.color_jitter(image)
-                new_images.append(img)
-            else:
-                new_images.append(image)
-        sample["images"] = new_images
-        return sample
+    def __call__(self, inputs):
+        keys = list(inputs.keys())
+        for key in keys:
+            if self.source_key in key:
+                if random.random() < self.prob_to_process:
+                    img = self.color_jitter(inputs[key])
+                    inputs[key] = img
+
+        return inputs
 
 
 class RuntimeActionNorm:
@@ -213,6 +213,7 @@ class RuntimeActionNorm:
 class RuntimeImageAugCorrupt:
     def __init__(self, prob_to_process=0.5):
         self.prob_to_process = prob_to_process
+        self.source_key = "cam_tensor_"
         # Define our sequence of augmentation steps that will be applied to every image.
         self.seq = augmenters.Sequential(
             [
@@ -249,25 +250,29 @@ class RuntimeImageAugCorrupt:
             random_order=True,
         )
 
-    def __call__(self, sample):
-        images = sample["images"]
-        new_images = []
-        for image in images:
-            if random.random() < self.prob_to_process:
-                image_arr = self.seq(images=np.array(image))
-                new_images.append(Image.fromarray(image_arr))
-            else:
-                new_images.append(image)
-        sample["images"] = new_images
-        return sample
+    def __call__(self, inputs):
+        keys = list(inputs.keys())
+        for key in keys:
+            if self.source_key in key:
+                if random.random() < self.prob_to_process:
+                    image_arr = self.seq(images=np.array(inputs[key]))
+                    inputs[key] = Image.fromarray(image_arr)
+
+        return inputs
 
 
 class RuntimeImageAugRandomDropImage:
     def __init__(
         self,
         prob_to_process=[0.1, 0.1, 0.1],
+        images=[
+            "cam_tensor_head_color",
+            "cam_tensor_hand_right_color",
+            "cam_tensor_hand_left_color",
+        ],
     ):
         self.prob_to_process = prob_to_process
+        self.images = images
         IMAGENET_MEAN = (0.485, 0.456, 0.406)
         self.image_mean = IMAGENET_MEAN
 
@@ -280,18 +285,15 @@ class RuntimeImageAugRandomDropImage:
         )
         return background_image
 
-    def __call__(self, sample):
-        images = sample["images"]
-        new_images = []
-        for i, image in enumerate(images):
-            if random.random() < self.prob_to_process[i]:
-                img = np.array(image)
-                background_image = self.drop_image(img)
-                new_images.append(Image.fromarray(background_image))
-            else:
-                new_images.append(image)
-        sample["images"] = new_images
-        return sample
+    def __call__(self, inputs):
+        for i, input_image in enumerate(self.images):
+            if input_image in inputs:
+                if random.random() < self.prob_to_process[i]:
+                    img = np.array(inputs[input_image])
+
+                    background_image = self.drop_image(img)
+                    inputs[input_image] = Image.fromarray(background_image)
+        return inputs
 
 
 episode_transform = transforms.Compose([EpisodeProcessorRelableStaticFrames()])
