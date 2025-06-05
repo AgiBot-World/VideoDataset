@@ -840,6 +840,7 @@ class A2dVideoDataset(Dataset):
         sample = copy.deepcopy(raw_sample)
         episode_id = int(sample["episode_id"])
         episode_info = self.episodes[episode_id]
+        sample["task_id"] = episode_info["task_id"]
 
         if not self.decoder:
             self.decoder = VideoDecoder(self.device_id, self.codec)
