@@ -84,9 +84,7 @@ VideoDecoder::VideoDecoder(int gpuid, const std::string& codec)
  */
 // Destructor: Release all resources
 VideoDecoder::~VideoDecoder() {
-    if (decoder != nullptr) {
-        delete decoder;
-    }
+    delete decoder;
     if (destroy) {
         cuCtxDestroy(cu_ctx);
     }
@@ -164,7 +162,7 @@ AVFormatContext* VideoDecoder::open(const std::string& videoPath) {
  * found.
  */
 // Main decoding function
-DecodedFrame VideoDecoder::decode(const std::string& videoPath, const int target_frame) {
+DecodedFrame VideoDecoder::decode(const std::string& videoPath, const int targetFrame) {
     DecodedFrame resultFrame;
 
     // Open video file and get format context
@@ -180,7 +178,7 @@ DecodedFrame VideoDecoder::decode(const std::string& videoPath, const int target
     // Calculate target timestamp from frame number
     AVStream* video_stream = fmt_ctx->streams[video_stream_idx];
     const double fps = av_q2d(video_stream->avg_frame_rate); // Calculate FPS
-    const double target_time = target_frame / fps;           // Target time (seconds)
+    const double target_time = targetFrame / fps;           // Target time (seconds)
     const int64_t target_pts = av_rescale_q(                 // Convert timebase
         static_cast<int64_t>(target_time * AV_TIME_BASE),
         AV_TIME_BASE_Q,

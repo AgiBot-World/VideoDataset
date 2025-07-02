@@ -224,5 +224,13 @@ int ExternalBuffer::LoadDLPack( std::vector<size_t> _shape, std::vector<size_t> 
         m_dlTensor->strides[i] /= itemSizeDT;
     }
 
+    m_dlTensor.m_tensor.deleter = [](DLManagedTensor *self) {
+        delete[] self->dl_tensor.shape;
+        self->dl_tensor.shape = nullptr;
+
+        delete[] self->dl_tensor.strides;
+        self->dl_tensor.strides = nullptr;
+    };
+
     return 0;
 }

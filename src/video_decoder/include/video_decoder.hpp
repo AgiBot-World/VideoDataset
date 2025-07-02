@@ -6,7 +6,7 @@
 
 class VideoDecoder {
 private:
-    CUcontext cu_ctx = NULL; // CUDA context for GPU operations
+    CUcontext cu_ctx = nullptr; // CUDA context for GPU operations
     // Add new member variables
     AVBSFContext* bsf_ctx_ = nullptr; // Bitstream filter context
     AVPacket* pkt = nullptr;          // Packet pointer

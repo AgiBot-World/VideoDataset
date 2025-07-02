@@ -50,7 +50,6 @@ public:
     const DLTensor &operator*() const;
     DLTensor       &operator*();
 
-private:
     DLManagedTensor m_tensor;
 };
 
