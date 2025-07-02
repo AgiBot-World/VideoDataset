@@ -1,6 +1,6 @@
 import os
 import torch
-from pathlib import Path
+import pytest
 
 from transformers import AutoTokenizer
 from videodataset.dataset import A2dVideoDataset
@@ -32,6 +32,9 @@ def test_dataset(parent_dir):
     label_file_dir = os.path.join(parent_dir, "test_dataset", "labels")
     data_root_dir = os.path.join(parent_dir, "test_dataset", "data")
     tokenizer_path = os.path.join(parent_dir, "test_dataset", "model")
+
+    if not os.path.exists(tokenizer_path):
+        pytest.skip(f"{tokenizer_path} missing")
 
     tokenizer = AutoTokenizer.from_pretrained(
         tokenizer_path, add_eos_token=False, trust_remote_code=True, use_fast=False
@@ -134,7 +137,3 @@ def test_dataset(parent_dir):
         num += 1
         if num > 10:
             break
-
-
-if __name__ == "__main__":
-    test_dataset(Path(__file__).parent.parent)

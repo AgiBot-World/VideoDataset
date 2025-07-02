@@ -1,11 +1,23 @@
 ci:
   tags:
-    - infini-gpu
+    - genie-gpu-4090
   interruptible: true
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   script:
-    - pip install -e .
+    - conan remote login ${DEV_ARTIFACTORY} ${ARTIFACTORY_USER} -p ${ARTIFACTORY_PASSWORD}
+    - pip install -e .[test]
     - make lint test build
+    - |
+      status=0
+      make benchmark || status=$?
+      [[ $status -ne 0 ]] && make benchmark-clean
+      make benchmark-histogram
+      make benchmark-keep
+      exit $status
   stage: ci
+  cache:
+    key: benchmark-cache
+    paths:
+      - .benchmarks

@@ -10,7 +10,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 from videodataset.utils.video_util import nv12_to_rgb
-from videodataset.video_decoder import VideoDecoder
+from videodataset import VideoDecoder
 
 
 logger = logging.getLogger(__name__)

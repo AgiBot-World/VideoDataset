@@ -78,10 +78,6 @@ ensure-lib:
 		echo "Copying libnvcuvid.so to $(SYSTEM_LIB_DIR)"; \
 		sudo cp "$(SDK_LIB_DIR)/libnvcuvid.so" "$(SYSTEM_LIB_DIR)/libnvcuvid.so.1"; \
 	fi
-	@if [ ! -f "$(SYSTEM_LIB_DIR)/libnvidia-encode.so" ] && [ -f "$(SDK_LIB_DIR)/libnvidia-encode.so" ]; then \
-		echo "Copying libnvidia-encode.so to $(SYSTEM_LIB_DIR)"; \
-		sudo cp "$(SDK_LIB_DIR)/libnvidia-encode.so" "$(SYSTEM_LIB_DIR)/libnvidia-encode.so.1"; \
-	fi
 	@echo "Library check completed."
 
 build: clean ensure-lib
@@ -92,4 +88,68 @@ build: clean ensure-lib
 ########################################################################################
 
 publish:
-	twine upload $(if $(CI),--verbose) --skip-existing ./${DIST_DIR}/*
+	twine upload $(if $(CI),--verbose) --skip-existing ${DIST_DIR}/*
+
+########################################################################################
+# pyi
+########################################################################################
+pyi:
+	pip install -e . pybind11-stubgen
+	pybind11-stubgen videodataset._decoder -o src --ignore-all-errors
+
+########################################################################################
+# docs
+########################################################################################
+
+SPHINX_BUILD = sphinx-build
+SPHINX_AUTOBUILD = sphinx-autobuild
+SOURCEDIR = docs
+BUILDDIR = docs/_build/html
+SPHINX_OPTS = -T -c $(SOURCEDIR) $(SOURCEDIR) $(BUILDDIR)
+KEEP_GOING = --keep-going
+NITPICKY = -n
+LINKCHECK = -b linkcheck
+
+docs-prepare:
+	pip install -e .[docs]
+
+docs-generate:
+	$(SPHINX_BUILD) $(KEEP_GOING) $(SPHINX_OPTS) $(POSARGS)
+
+docs-serve:
+	pip install sphinx-autobuild
+	$(SPHINX_AUTOBUILD) $(SPHINX_OPTS) $(POSARGS)
+
+docs-check:
+	$(SPHINX_BUILD) $(NITPICKY) $(SPHINX_OPTS) $(POSARGS)
+
+docs-linkcheck:
+	$(SPHINX_BUILD) $(LINKCHECK) $(SPHINX_OPTS) $(POSARGS)
+
+########################################################################################
+# Benchmark
+########################################################################################
+
+# or min:1% or mean:0.001 or mean:1%
+BENCHMARK_FAIL ?= mean:5%
+BENCHMARK_MIN_ROUND ?= 30
+BENCHMARK_MAX_KEEP ?= 9
+BENCHMARK_WARMUP ?= on
+BENCHMARK_WARMUP_ITERATIONS ?= 4
+
+benchmark:
+	@pytest tests/benchmark/ --benchmark-autosave --benchmark-sort=name \
+	--benchmark-min-rounds=$(BENCHMARK_MIN_ROUND) \
+	--benchmark-warmup=$(BENCHMARK_WARMUP) \
+	--benchmark-warmup-iterations=$(BENCHMARK_WARMUP_ITERATIONS) \
+	$(if $(shell find .benchmarks -mindepth 2 -print -quit 2>/dev/null), \
+		--benchmark-compare-fail="$(BENCHMARK_FAIL)" --benchmark-compare,)
+
+benchmark-histogram:
+	pytest-benchmark compare --sort=name --histogram=.benchmarks/histogram
+
+benchmark-clean:
+	find .benchmarks/ -name *.json | tail -n 1 | xargs rm
+
+benchmark-keep:
+	find .benchmarks/ -name *.json | sort -n | head -n -$(BENCHMARK_MAX_KEEP) | xargs -r rm

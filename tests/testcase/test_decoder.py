@@ -1,32 +1,30 @@
-import os
 import pytest
-from videodataset import video_decoder
+from videodataset import VideoDecoder
 
 
 def test_init():
     """Test CUDA context creation with valid and invalid GPU IDs."""
     # Test with valid GPU ID
-    video_decoder.VideoDecoder(0, "h265")
+    VideoDecoder(0, "h265")
 
 
 def test_invalid_gpu():
     # Test invalid GPU ID initialization with out-of-range value 999 and H.265 codec
     with pytest.raises(Exception) as exc_info:
         # Attempt to create decoder with invalid GPU ID (should trigger error)
-        video_decoder.VideoDecoder(999, "h265")
+        VideoDecoder(999, "h265")
     # Verify error message contains "Invalid GPU ID" text pattern
     assert "GPU ordinal out of range" in str(exc_info.value)
 
 
-def test_open_file(parent_dir):
+def test_decode_sample(test_video):
     # Create decoder instance with GPU ID 0 and H.265 codec
-    decoder = video_decoder.VideoDecoder(0, "h265")
-    decoder.decode(os.path.join(parent_dir, "test_decoder", "head_color.mp4"), 0)
+    VideoDecoder(0, "h265").decode(str(test_video), 0)
 
 
 def test_open_invalid_file():
     # Create decoder instance with GPU ID 0 and H.265 codec
-    decoder = video_decoder.VideoDecoder(0, "h265")
+    decoder = VideoDecoder(0, "h265")
 
     # Verify that opening invalid file raises RuntimeError
     with pytest.raises(RuntimeError) as exc_info:
@@ -39,5 +37,5 @@ def test_open_invalid_file():
 
 def test_unsupported_codec():
     with pytest.raises(RuntimeError) as exc_info:
-        video_decoder.VideoDecoder(0, "unknown")
+        VideoDecoder(0, "unknown")
     assert "Unsupported codec" in str(exc_info.value)

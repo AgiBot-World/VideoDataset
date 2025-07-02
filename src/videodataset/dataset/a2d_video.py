@@ -15,7 +15,7 @@ import numpy as np
 from PIL import Image
 from pathlib import Path
 
-from videodataset.video_decoder import VideoDecoder
+from videodataset import VideoDecoder
 from videodataset.utils.image_util import (
     dynamic_preprocess,
     build_transform,

@@ -1,0 +1,228 @@
+---
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+---
+Language: Cpp
+# Do not offset access specifiers (public, protected, private)
+AccessModifierOffset: -4
+# Align parameters after opening brackets (round, angle, square)
+AlignAfterOpenBracket: Align
+# Do not align consecutive assignments
+AlignConsecutiveAssignments: false
+# Do not align consecutive declarations
+AlignConsecutiveDeclarations: false
+# Align consecutive macros
+AlignConsecutiveMacros: true
+# Align escaped newlines to the left
+AlignEscapedNewlines: Left
+# Align operands of binary and ternary expressions horizontally
+AlignOperands: true
+# Align trailing comments
+AlignTrailingComments: true
+# Allow all function arguments on the next line
+AllowAllArgumentsOnNextLine: false
+AllowAllConstructorInitializersOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+# Do not allow short blocks (e.g., while blocks) on a single line
+AllowShortBlocksOnASingleLine: false
+# Do not allow short case labels on a single line
+AllowShortCaseLabelsOnASingleLine: false
+# Do not allow non-empty functions defined outside of a class on a single line
+AllowShortFunctionsOnASingleLine: Inline
+# Do not allow short if statements on a single line
+AllowShortIfStatementsOnASingleLine: false
+# Do not allow short loop blocks on a single line
+AllowShortLoopsOnASingleLine: false
+# Do not break after the return type in function definitions, unless it exceeds the column limit
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakAfterReturnType: None
+# Do not break before multiline strings
+AlwaysBreakBeforeMultilineStrings: false
+# Always break after template declarations
+AlwaysBreakTemplateDeclarations: Yes
+# Do not require each function argument to be on a separate line
+BinPackArguments: false
+# Do not require each function parameter to be on a separate line
+BinPackParameters: false
+# Configure brace wrapping style
+BraceWrapping:
+  # Do not break after case labels
+  AfterCaseLabel: false
+  # Do not break after class definitions
+  AfterClass: false
+  # Do not break after control statements
+  AfterControlStatement: false
+  # Do not break after enum definitions
+  AfterEnum: false
+  # Do not break after function definitions
+  AfterFunction: false
+  # Do not break after namespace definitions
+  AfterNamespace: false
+  # Do not break after struct definitions
+  AfterStruct: false
+  # Do not break after union definitions
+  AfterUnion: false
+  # Do not break after extern blocks
+  AfterExternBlock: false
+  # Break before catch statements
+  BeforeCatch: true
+  # Break before else statements
+  BeforeElse: true
+  # Do not break before lambda bodies
+  BeforeLambdaBody: false
+  # Break before while statements
+  BeforeWhile: true
+  # Do not indent braces
+  IndentBraces: false
+  # Allow empty function bodies on a single line
+  SplitEmptyFunction: false
+  # Allow empty statements on a single line
+  SplitEmptyRecord: false
+  # Allow empty namespaces on a single line
+  SplitEmptyNamespace: false
+# Break before binary operators, except for assignment operators
+BreakBeforeBinaryOperators: NonAssignment
+# Customize break before braces in BraceWrapping
+BreakBeforeBraces: Custom
+# Do not break after commas in inheritance lists
+BreakBeforeInheritanceComma: false
+# Break before colons in inheritance lists, but not before commas
+BreakInheritanceList: BeforeColon
+# Break before ternary operators
+BreakBeforeTernaryOperators: true
+# Do not break after commas in constructor initializer lists
+BreakConstructorInitializersBeforeComma: false
+# Break before colons in constructor initializer lists, but not before commas
+BreakConstructorInitializers: BeforeColon
+# Allow breaking string literals
+BreakStringLiterals: true
+# Column limit for each line
+ColumnLimit: 120
+CommentPragmas: '^ IWYU pragma:'
+# Do not allow different namespaces to be defined on the same line
+CompactNamespaces: false
+# Constructor initializer lists should either be all on one line or one per line
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+# Indent constructor initializer lists by 4 spaces
+ConstructorInitializerIndentWidth: 4
+# Indent continuation lines by 4 spaces
+ContinuationIndentWidth: 4
+# No spaces around variable initialization lists
+Cpp11BracedListStyle: true
+DerivePointerAlignment: true
+DisableFormat: false
+ExperimentalAutoDetectBinPacking: false
+# Automatically add comments at the end of namespaces
+FixNamespaceComments: true
+ForEachMacros:
+  - foreach
+  - Q_FOREACH
+  - BOOST_FOREACH
+IncludeBlocks: Preserve
+IncludeCategories:
+  - Regex: ^<ext/.*\.h>
+    Priority: 2
+  - Regex: StdAfx.h
+    Priority: -1
+  - Regex: ^<.*\.h>
+    Priority: 1
+  - Regex: ^<.*
+    Priority: 2
+  - Regex: .*
+    Priority: 3
+IncludeIsMainRegex: ([-_](test|unittest))?$
+# Indent case labels inside switch statements
+IndentCaseLabels: true
+# Indent code blocks inside extern blocks
+IndentExternBlock: Indent
+# Do not indent preprocessor directives
+IndentPPDirectives: None
+# Use 4 spaces for indentation
+IndentWidth: 4
+# Do not indent wrapped function names after the return type
+IndentWrappedFunctionNames: false
+# Do not keep empty lines at the start of code blocks
+KeepEmptyLinesAtTheStartOfBlocks: false
+MacroBlockBegin: ''
+MacroBlockEnd: ''
+# Do not allow consecutive empty lines
+MaxEmptyLinesToKeep: 1
+# Do not indent contents inside namespaces
+NamespaceIndentation: None
+PenaltyBreakAssignment: 2
+PenaltyBreakBeforeFirstCallParameter: 1
+PenaltyBreakComment: 300
+PenaltyBreakFirstLessLess: 120
+PenaltyBreakString: 1000
+PenaltyBreakTemplateDeclaration: 10
+PenaltyExcessCharacter: 1000000
+PenaltyReturnTypeOnItsOwnLine: 200
+# * and & should be placed next to the type name
+PointerAlignment: Left
+RawStringFormats:
+  - Language: Cpp
+    Delimiters:
+      - cc
+      - CC
+      - cpp
+      - Cpp
+      - CPP
+      - c++
+      - C++
+    CanonicalDelimiter: ''
+    BasedOnStyle: google
+  - Language: TextProto
+    Delimiters:
+      - pb
+      - PB
+      - proto
+      - PROTO
+    EnclosingFunctions:
+      - EqualsProto
+      - EquivToProto
+      - PARSE_PARTIAL_TEXT_PROTO
+      - PARSE_TEST_PROTO
+      - PARSE_TEXT_PROTO
+      - ParseTextOrDie
+      - ParseTextProtoOrDie
+    CanonicalDelimiter: ''
+    BasedOnStyle: google
+# Allow reflowing of comments
+ReflowComments: true
+# Allow sorting of #include statements
+SortIncludes: true
+# Allow sorting of using declarations
+SortUsingDeclarations: true
+# Do not include spaces after C-style casts
+SpaceAfterCStyleCast: false
+# Require a space after the template keyword
+SpaceAfterTemplateKeyword: true
+# Require spaces around assignment operators
+SpaceBeforeAssignmentOperators: true
+# Do not include spaces before C++11 braced initializer lists
+SpaceBeforeCpp11BracedList: false
+# Require a space before the colon in constructor initializers
+SpaceBeforeCtorInitializerColon: true
+# Require a space before the colon in inheritance statements
+SpaceBeforeInheritanceColon: true
+# Require a space after control statement keywords (if, for, while, etc.)
+SpaceBeforeParens: ControlStatements
+# Require a space before the colon in range-based for loops
+SpaceBeforeRangeBasedForLoopColon: true
+# Do not include spaces inside empty parentheses
+SpaceInEmptyParentheses: false
+# Require a space before // in trailing comments
+SpacesBeforeTrailingComments: 1
+# Do not include spaces around angle brackets
+SpacesInAngles: false
+# Do not include spaces around C-style cast parentheses
+SpacesInCStyleCastParentheses: false
+# Do not include spaces around parentheses
+SpacesInParentheses: false
+# Do not include spaces around square brackets
+SpacesInSquareBrackets: false
+Standard: Auto
+StatementMacros:
+  - Q_UNUSED
+  - QT_REQUIRE_VERSION
+TabWidth: 4
+UseTab: Never

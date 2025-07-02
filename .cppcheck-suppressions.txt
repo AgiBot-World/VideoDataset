@@ -1,0 +1,2 @@
+// Limit analysis of branches. Use --check-level=exhaustive to analyze all branches.
+normalCheckLevelMaxBranches

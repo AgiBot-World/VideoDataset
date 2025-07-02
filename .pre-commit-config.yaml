@@ -40,3 +40,32 @@ repos:
           - python
           - pyi
         require_serial: true
+
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v20.1.5
+    hooks:
+      - id: clang-format
+        types_or: [c++, c, cuda]
+        stages:
+          - pre-commit
+        exclude: |
+          (?x)(
+              ^(src/video_decoder/include/core/.*) |
+              ^(src/video_decoder/src/core/.*)
+          )
+
+  - repo: https://github.com/cheshirekow/cmake-format-precommit
+    rev: v0.6.13
+    hooks:
+      - id: cmake-format
+        additional_dependencies: [pyyaml]
+        types: [file]
+        files: (\.cmake|CMakeLists.txt)(.in)?$
+        stages:
+          - pre-commit
+        exclude: |
+          (?x)(
+              ^(cmake/configure/ConanProvider.cmake) |
+              ^(cmake/configure/ExtractVersion.cmake) |
+              ^(cmake/configure/GitInfo.cmake)
+          )

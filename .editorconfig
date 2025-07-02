@@ -1,0 +1,20 @@
+# EditorConfig is awesome: https://EditorConfig.org
+
+root = true
+
+[*]
+end_of_line = lf
+charset = utf-8
+indent_size = 4
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{yml,yaml,json,toml,jinja,css,js,cmake}]
+indent_size = 2
+
+[CMakeLists.txt]
+indent_size = 2
+
+[Makefile]
+indent_style = tab

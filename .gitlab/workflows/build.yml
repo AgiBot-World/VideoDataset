@@ -1,6 +1,6 @@
 build:
   tags:
-    - infini-gpu
+    - genie-gpu-4090
   interruptible: true
   rules:
     - if: $CI_COMMIT_TAG =~ /^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-?(a|b|rc)(0|[1-9][0-9]*)?)?$/
@@ -8,5 +8,6 @@ build:
     paths:
       - dist
   script:
+    - conan remote login ${DEV_ARTIFACTORY} ${ARTIFACTORY_USER} -p ${ARTIFACTORY_PASSWORD}
     - make build
   stage: build

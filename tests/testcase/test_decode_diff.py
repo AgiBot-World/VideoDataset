@@ -8,7 +8,7 @@ import torch
 from skimage.metrics import structural_similarity as ssim
 from torch.utils.data import DataLoader, Dataset
 
-from videodataset import video_decoder
+from videodataset import VideoDecoder
 
 
 def mse(image1, image2):
@@ -138,7 +138,7 @@ class MyDataset(Dataset):
 
     def __getitem__(self, idx):
         if not self.decoder:
-            self.decoder = video_decoder.VideoDecoder(self.gpuid, self.codec)
+            self.decoder = VideoDecoder(self.gpuid, self.codec)
         try:
             data = self.datas[idx]
             video = data["video"]
