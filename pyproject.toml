@@ -25,7 +25,17 @@ classifiers = [
   "Typing :: Typed",
 ]
 dynamic = ["version"]
-dependencies = ["numpy~=1.23.0"]
+dependencies = [
+  "numpy~=1.23.0",
+  "transformers",
+  "torch>=2.5.0",
+  "pillow~=10.4.0",
+  "scipy~=1.14.0",
+  "ik-solver~=0.3.0",
+  "opencv~=4.7.0",
+  "quaternionic>=1.0.15",
+  "torchvision>=0.20.0",
+]
 
 [project.optional-dependencies]
 test = ["pytest >=6", "pytest-cov >=3", "pytest-benchmark[histogram]"]
@@ -58,12 +68,11 @@ fallback_version = "0.0.0"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
+addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config", "--benchmark-skip"]
 xfail_strict = true
 filterwarnings = ["error"]
 log_cli_level = "INFO"
 testpaths = ["tests"]
-norecursedirs = ["benchmark"]
 
 [tool.coverage]
 run.source = ["videodataset"]

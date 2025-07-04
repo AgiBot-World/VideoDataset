@@ -106,5 +106,7 @@
   "python.testing.pytestEnabled": true,
   "cmake.configureOnEdit": false,
   "cmake.options.statusBarVisibility": "icon",
-  "cmake.useCMakePresets": "auto"
+  "cmake.useCMakePresets": "auto",
+  "python-envs.defaultEnvManager": "ms-python.python:system",
+  "python-envs.pythonProjects": []
 }

@@ -138,7 +138,9 @@ BENCHMARK_WARMUP ?= on
 BENCHMARK_WARMUP_ITERATIONS ?= 4
 
 benchmark:
-	@pytest tests/benchmark/ --benchmark-autosave --benchmark-sort=name \
+	@pytest --benchmark-only --benchmark-autosave --benchmark-sort=name \
+	--benchmark-cprofile=function_name \
+	--benchmark-cprofile-top=10 \
 	--benchmark-min-rounds=$(BENCHMARK_MIN_ROUND) \
 	--benchmark-warmup=$(BENCHMARK_WARMUP) \
 	--benchmark-warmup-iterations=$(BENCHMARK_WARMUP_ITERATIONS) \
