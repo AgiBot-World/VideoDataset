@@ -1,9 +1,17 @@
+from __future__ import annotations
+
 import os
-from pathlib import Path
 import shutil
 import subprocess
+from pathlib import Path
 
 import pytest
+
+
+@pytest.fixture
+def tests_dir():
+    """Get the directory of the tests."""
+    return Path(__file__).parent
 
 
 @pytest.fixture
@@ -29,7 +37,7 @@ def ffmpeg_path():
     return path
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def test_video(ffmpeg_path, tmp_path_factory):
     """Generate a test video using FFmpeg's test pattern source"""
     output_dir = tmp_path_factory.mktemp("test_videos")
@@ -42,7 +50,7 @@ def test_video(ffmpeg_path, tmp_path_factory):
         "-f",
         "lavfi",
         "-i",
-        "testsrc=size=1280x720:rate=30",  # resolution, fps
+        "mandelbrot=size=1280x720:rate=30",  # resolution, fps
         "-t",
         "1",  #  seconds
         "-c:v",

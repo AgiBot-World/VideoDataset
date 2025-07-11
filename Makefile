@@ -66,7 +66,10 @@ pre-commit:
 # Clean and run test with coverage.
 test:
 	python -m coverage erase
-	python -m coverage run -m pytest
+	python -m coverage run --data-file=.coverage.1 -m pytest -m "not decoder_validation"
+	python -m coverage run --data-file=.coverage.2 -m pytest -m "decoder_validation"
+	python -m coverage combine .coverage.1 .coverage.2
+
 
 ########################################################################################
 # build

@@ -30,9 +30,9 @@ dependencies = [
   "transformers",
   "torch>=2.5.0",
   "pillow~=10.4.0",
+  "opencv-python",
   "scipy~=1.14.0",
   "ik-solver~=0.3.0",
-  "opencv~=4.7.0",
   "quaternionic>=1.0.15",
   "torchvision>=0.20.0",
 ]
@@ -73,6 +73,7 @@ xfail_strict = true
 filterwarnings = ["error"]
 log_cli_level = "INFO"
 testpaths = ["tests"]
+markers = ["decoder_validation"]
 
 [tool.coverage]
 run.source = ["videodataset"]
