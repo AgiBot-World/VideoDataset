@@ -578,8 +578,8 @@ int NvDecoder::HandlePictureDisplay(CUVIDPARSERDISPINFO *pDispInfo) {
                         {
                             case SEI_TYPE_TIME_CODE:
                             {
-                                HEVCSEITIMECODE *timecode = (HEVCSEITIMECODE *)seiBuffer;
-                                fwrite(timecode, sizeof(HEVCSEITIMECODE), 1, m_fpSEI);
+                                TIMECODE *timecode = (TIMECODE *)seiBuffer;
+                                fwrite(timecode, sizeof(TIMECODE), 1, m_fpSEI);
                             }
                             break;
                             case SEI_TYPE_USER_DATA_UNREGISTERED:

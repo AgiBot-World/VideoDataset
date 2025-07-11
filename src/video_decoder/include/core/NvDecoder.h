@@ -35,7 +35,7 @@
 #include <iostream>
 #include <sstream>
 #include <string.h>
-#include <nvcuvid.h>
+#include "nvcuvid.h"
 #include "NvCodecUtils.h"
 #include <map>
 

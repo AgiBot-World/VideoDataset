@@ -30,13 +30,8 @@
 #include <pybind11/pybind11.h>
 #include <string>
 #include <vector>
-#include "nvEncodeAPI.h"
 #include "NvCodecUtils.h"
 #include "ExternalBuffer.hpp"
-using namespace std;
-//using namespace chrono;
-
-namespace py = pybind11;
 
 /**
 * @brief providing seek functionality within demuxer.
@@ -143,7 +138,3 @@ struct DecodedFrame
         extBuf = std::make_shared<ExternalBuffer>();
     }
 };
-
-
-
-CAIMemoryView  coerceToCudaArrayView(py::object cuda_array, NV_ENC_BUFFER_FORMAT bufferFormat, size_t width, size_t height, int planeIdx = 0);

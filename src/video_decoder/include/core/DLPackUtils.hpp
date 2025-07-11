@@ -53,7 +53,4 @@ public:
     DLManagedTensor m_tensor;
 };
 
-
-
-
 #endif // DLPACKUTILS_HPP
