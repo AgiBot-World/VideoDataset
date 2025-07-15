@@ -76,7 +76,7 @@ public:
         if (bPrintTimeStamp) {
             time_t t = time(NULL);
             struct tm *ptm = localtime(&t);
-            sprintf(szLead, "[%-5s][%02d:%02d:%02d] ", 
+            sprintf(szLead, "[%-5s][%02d:%02d:%02d] ",
                 szLevels[l], ptm->tm_hour, ptm->tm_min, ptm->tm_sec);
         } else {
             sprintf(szLead, "[%-5s] ", szLevels[l]);
@@ -98,15 +98,15 @@ private:
 
 class LoggerFactory {
 public:
-    static Logger* CreateFileLogger(std::string strFilePath, 
+    static Logger* CreateFileLogger(std::string strFilePath,
             LogLevel level = INFO, bool bPrintTimeStamp = true) {
         return new FileLogger(strFilePath, level, bPrintTimeStamp);
     }
-    static Logger* CreateConsoleLogger(LogLevel level = INFO, 
+    static Logger* CreateConsoleLogger(LogLevel level = INFO,
             bool bPrintTimeStamp = true) {
         return new ConsoleLogger(level, bPrintTimeStamp);
     }
-    static Logger* CreateUdpLogger(char *szHost, unsigned uPort, LogLevel level = INFO, 
+    static Logger* CreateUdpLogger(char *szHost, unsigned uPort, LogLevel level = INFO,
             bool bPrintTimeStamp = true) {
         return new UdpLogger(szHost, uPort, level, bPrintTimeStamp);
     }
@@ -115,7 +115,7 @@ private:
 
     class FileLogger : public Logger {
     public:
-        FileLogger(std::string strFilePath, LogLevel level, bool bPrintTimeStamp) 
+        FileLogger(std::string strFilePath, LogLevel level, bool bPrintTimeStamp)
         : Logger(level, bPrintTimeStamp) {
             pFileOut = new std::ofstream();
             pFileOut->open(strFilePath.c_str());
@@ -132,7 +132,7 @@ private:
 
     class ConsoleLogger : public Logger {
     public:
-        ConsoleLogger(LogLevel level, bool bPrintTimeStamp) 
+        ConsoleLogger(LogLevel level, bool bPrintTimeStamp)
         : Logger(level, bPrintTimeStamp) {}
         std::ostream& GetStream() {
             return std::cout;
@@ -181,7 +181,7 @@ private:
 #endif
             }
             void Flush() {
-                if (sendto(socket, sb.str().c_str(), (int)sb.str().length() + 1, 
+                if (sendto(socket, sb.str().c_str(), (int)sb.str().length() + 1,
                         0, (struct sockaddr *)&server, (int)sizeof(sockaddr_in)) == -1) {
                     fprintf(stderr, "sendto() failed.\n");
                 }
@@ -194,7 +194,7 @@ private:
             struct sockaddr_in server;
         };
     public:
-        UdpLogger(char *szHost, unsigned uPort, LogLevel level, bool bPrintTimeStamp) 
+        UdpLogger(char *szHost, unsigned uPort, LogLevel level, bool bPrintTimeStamp)
         : Logger(level, bPrintTimeStamp), udpOut(szHost, (unsigned short)uPort) {}
         UdpOstream& GetStream() {
             return udpOut;

@@ -1,21 +1,21 @@
 [build-system]
-requires = ["scikit-build-core", "conan~=2.17.0"]
 build-backend = "scikit_build_core.build"
+requires = [ "conan~=2.17.0", "scikit-build-core" ]
 
 [project]
 name = "videodataset"
 description = "Video Dataset with NvCodec."
 readme = "README.md"
+keywords = [ "dataset", "nvcodec", "video" ]
 license = { text = "MIT" }
-authors = [{ email = "genie@agibot.com", name = "genie" }]
+authors = [ { email = "genie@agibot.com", name = "genie" } ]
 requires-python = ">=3.10"
 classifiers = [
-  "Intended Audience :: Science/Research",
   "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
   "License :: OSI Approved :: MIT License",
   "Operating System :: POSIX :: Linux",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -24,33 +24,41 @@ classifiers = [
   "Topic :: Scientific/Engineering",
   "Typing :: Typed",
 ]
-dynamic = ["version"]
+dynamic = [ "version" ]
 dependencies = [
-  "numpy~=1.23.0",
-  "transformers",
-  "torch>=2.5.0",
-  "pillow~=10.4.0",
+  "numpy",
   "opencv-python",
-  "scipy~=1.14.0",
-  "ik-solver~=0.3.0",
-  "quaternionic>=1.0.15",
-  "torchvision>=0.20.0",
+  "pillow>=10.4",
+  "scipy",
+  "torch>=2.5",
+  "torchvision>=0.20",
+  "transformers",
 ]
+urls.changelog = "https://code.agibot.com/ai-platform/videodataset/-/releases"
+urls.issue = "https://code.agibot.com/ai-platform/videodataset/-/issues"
+urls.repository = "https://code.agibot.com/ai-platform/videodataset"
 
-[project.optional-dependencies]
-test = ["pytest >=6", "pytest-cov >=3", "pytest-benchmark[histogram]"]
+[dependency-groups]
+test = [
+  "pytest>=6",
+  "pytest-benchmark[histogram]",
+  "pytest-cov>=3",
+  "scikit-image>=0.25.2",
+]
 docs = [
-  "sphinx>=7.0",
-  "myst_parser>=0.13",
-  "sphinx_copybutton",
-  "sphinx_autodoc_typehints",
-  "furo>=2023.08.17",
+  "furo>=2023.8.17",
+  "myst-parser>=0.13",
+  "sphinx>=7",
+  "sphinx-autodoc-typehints",
+  "sphinx-copybutton",
 ]
 
-[project.urls]
-Homepage = "https://code.agibot.com/ai-platform/videodataset"
-"Bug Tracker" = "https://code.agibot.com/ai-platform/videodataset/-/issues"
-Changelog = "https://code.agibot.com/ai-platform/videodataset/-/releases"
+[tool.pdm]
+distribution = true
+use_venv = false
+
+[tool.setuptools_scm]
+fallback_version = "0.0.0"
 
 [tool.scikit-build]
 minimum-version = "0.9"
@@ -63,69 +71,77 @@ metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
 BUILD_TESTING = "OFF"
 CMAKE_BUILD_TYPE = "Release"
 
-[tool.setuptools_scm]
-fallback_version = "0.0.0"
+[tool.cibuildwheel]
+build-verbosity = 1
+skip = [ "pp*", "*win*" ]
+test-command = "pytest {project}/tests"
+test-extras = [ "test" ]
+test-skip = [ "*-win_arm64", "*-macosx_arm64" ]
+
+[[tool.cibuildwheel.overrides]]
+select = "*-macos*"
+environment = { MACOSX_DEPLOYMENT_TARGET = "10.15" }
+
+[tool.ruff]
+src = [ "src" ]
+# TODO fix ruff erros from more rules
+lint.extend-select = [
+  #   "B",   # flake8-bugbear
+  #   "I",   # isort
+  #   "ARG", # flake8-unused-arguments
+  #   "C4",  # flake8-comprehensions
+  #   "EM",  # flake8-errmsg
+  #   "ICN", # flake8-import-conventions
+  #   "G",   # flake8-logging-format
+  #   "PGH", # pygrep-hooks
+  #   "PIE", # flake8-pie
+  #   "PL",  # pylint
+  #   "PT",  # flake8-pytest-style
+  #   "PTH", # flake8-use-pathlib
+  #   "RET", # flake8-return
+  #   "RUF", # Ruff-specific
+  #   "SIM", # flake8-simplify
+  #   "T20", # flake8-print
+  #   "UP",  # pyupgrade
+  #   "YTT", # flake8-2020
+  #   "EXE", # flake8-executable
+  #   "NPY", # NumPy specific rules
+  #   "PD",  # pandas-vet
+]
+lint.ignore = [
+  "ISC001",  # Conflicts with formatter
+  "PLR09",   # Too many <...>
+  "PLR2004", # Magic value used in comparison
+]
+lint.per-file-ignores."src/videodataset/_decoder.pyi" = [ "F821" ]
+# Uncomment if using a _compat.typing backport
+# typing-modules = ["videodataset._compat.typing"]
+lint.per-file-ignores."tests/**" = [ "T20" ]
+lint.isort.required-imports = [ "from __future__ import annotations" ]
+
+[tool.codespell]
+write-changes = true
+check-filenames = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config", "--benchmark-skip"]
+addopts = [ "-ra", "--showlocals", "--strict-markers", "--strict-config", "--benchmark-skip" ]
 xfail_strict = true
-filterwarnings = ["error"]
+filterwarnings = [ "error" ]
 log_cli_level = "INFO"
-testpaths = ["tests"]
-markers = ["decoder_validation"]
+testpaths = [ "tests" ]
+markers = [ "decoder_validation" ]
 
 [tool.coverage]
-run.source = ["videodataset"]
-report.exclude_also = ['\.\.\.', 'if typing.TYPE_CHECKING:']
+run.source = [ "videodataset" ]
+report.exclude_also = [ '\.\.\.', 'if typing.TYPE_CHECKING:' ]
 
 [tool.mypy]
-disable_error_code = ["import-untyped", "operator", "assignment"]
-exclude = ["tests/testdata/model", "src/videodataset/_decoder.pyi"]
+disable_error_code = [ "import-untyped", "operator", "assignment", "name-defined" ]
+exclude = [ "src/videodataset/_decoder.pyi" ]
 
-#  TODO fix mypy errors under the main module videodataset
+# TODO fix mypy errors under the main module videodataset
 # [[tool.mypy.overrides]]
 # module = "videodataset.*"
 # disallow_untyped_defs = true
 # disallow_incomplete_defs = true
-
-[tool.ruff]
-src = ["src"]
-
-[tool.ruff.lint]
-# TODO fix ruff erros from more rules
-# extend-select = [
-#   "B",   # flake8-bugbear
-#   "I",   # isort
-#   "ARG", # flake8-unused-arguments
-#   "C4",  # flake8-comprehensions
-#   "EM",  # flake8-errmsg
-#   "ICN", # flake8-import-conventions
-#   "G",   # flake8-logging-format
-#   "PGH", # pygrep-hooks
-#   "PIE", # flake8-pie
-#   "PL",  # pylint
-#   "PT",  # flake8-pytest-style
-#   "PTH", # flake8-use-pathlib
-#   "RET", # flake8-return
-#   "RUF", # Ruff-specific
-#   "SIM", # flake8-simplify
-#   "T20", # flake8-print
-#   "UP",  # pyupgrade
-#   "YTT", # flake8-2020
-#   "EXE", # flake8-executable
-#   "NPY", # NumPy specific rules
-#   "PD",  # pandas-vet
-# ]
-ignore = [
-  "PLR09",   # Too many <...>
-  "PLR2004", # Magic value used in comparison
-  "ISC001",  # Conflicts with formatter
-]
-isort.required-imports = ["from __future__ import annotations"]
-# Uncomment if using a _compat.typing backport
-# typing-modules = ["videodataset._compat.typing"]
-
-[tool.ruff.lint.per-file-ignores]
-"tests/**" = ["T20"]
-"src/videodataset/_decoder.pyi" = ["F821"]

@@ -267,7 +267,7 @@ int NvDecoder::HandleVideoSequence(CUVIDEOFORMAT *pVideoFormat)
     else if (m_eChromaFormat == cudaVideoChromaFormat_422)
         m_eOutputFormat = cudaVideoSurfaceFormat_NV12;  // no 4:2:2 output format supported yet so make 420 default
 
-    // Check if output format supported. If not, check falback options
+    // Check if output format supported. If not, check fallback options
     if (!(decodecaps.nOutputFormatMask & (1 << m_eOutputFormat)))
     {
         if (decodecaps.nOutputFormatMask & (1 << cudaVideoSurfaceFormat_NV12))
@@ -428,7 +428,7 @@ int NvDecoder::ReconfigureDecoder(CUVIDEOFORMAT *pVideoFormat)
     // If external reconfigure is called along with resolution change even if post processing params is not changed,
     // do full reconfigure params update
     if ((m_bReconfigExternal && bDecodeResChange) || m_bReconfigExtPPChange) {
-        // update display rect and target resolution if requested explicitely
+        // update display rect and target resolution if requested explicitly
         m_bReconfigExternal = false;
         m_bReconfigExtPPChange = false;
         m_videoFormat = *pVideoFormat;

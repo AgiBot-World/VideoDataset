@@ -146,7 +146,7 @@ py::capsule ExternalBuffer::dlpack(py::object stream) const
                         }
                     });
 
-    // Now that the capsule is created and the manager ctx was transfered to it,
+    // Now that the capsule is created and the manager ctx was transferred to it,
     // we can release the unique_ptr.
     ctx.release();
 

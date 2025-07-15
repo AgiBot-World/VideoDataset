@@ -656,7 +656,7 @@ macro(conan_provide_dependency_check)
                         "but Conan has not been invoked. Please add at least one "
                         "call to `find_package()`.")
         if(DEFINED CONAN_COMMAND)
-            # supress warning in case `CONAN_COMMAND` was specified but unused.
+            # suppress warning in case `CONAN_COMMAND` was specified but unused.
             set(_conan_command ${CONAN_COMMAND})
             unset(_conan_command)
         endif()

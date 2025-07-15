@@ -8,8 +8,90 @@ default_stages:
   - manual
   - pre-push
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-docstring-first
+      - id: check-merge-conflict
+        args:
+          - '--assume-in-merge'
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: forbid-new-submodules
+      - id: mixed-line-ending
+      - id: name-tests-test
+        args:
+          - '--pytest-test-first'
+      - id: no-commit-to-branch
+        stages:
+          - pre-push
+      - id: sort-simple-yaml
+        files: .pre-commit-config.yaml
+      - id: trailing-whitespace
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v20.1.5
+    hooks:
+      - id: clang-format
+        types_or: [c++, c, cuda]
+        stages:
+          - pre-commit
+        exclude: |
+          (?x)(
+              ^(src/video_decoder/include/core/.*) |
+              ^(src/video_decoder/src/core/.*)
+          )
+  - repo: https://github.com/cheshirekow/cmake-format-precommit
+    rev: v0.6.13
+    hooks:
+      - id: cmake-format
+        additional_dependencies: [pyyaml]
+        types: [file]
+        files: (\.cmake|CMakeLists.txt)(.in)?$
+        stages:
+          - pre-commit
+        exclude: |
+          (?x)(
+              ^(cmake/configure/ConanProvider.cmake) |
+              ^(cmake/configure/ExtractVersion.cmake) |
+              ^(cmake/configure/GitInfo.cmake)
+          )
   - repo: local
     hooks:
+      - id: pdm-sync
+        name: pdm-sync
+        entry: pdm sync
+        language: python
+        stages:
+          - post-checkout
+          - post-merge
+          - post-rewrite
+        always_run: true
+        pass_filenames: false
+      - id: pdm-dev-sync
+        name: pdm-dev-sync
+        entry: pdm sync --lockfile pdm.dev.lock
+        language: python
+        stages:
+          - post-checkout
+          - post-merge
+          - post-rewrite
+        always_run: true
+        pass_filenames: false
+      - id: pdm-lock-check
+        name: pdm-lock-check
+        entry: pdm lock --check
+        language: python
+        files: ^pyproject.toml$
+        pass_filenames: false
+      - id: pdm-dev-lock-check
+        name: pdm-dev-lock-check
+        entry: pdm lock --check --lockfile pdm.dev.lock
+        language: python
+        files: ^pyproject.toml$
+        pass_filenames: false
       - id: ruff
         name: ruff
         entry: ruff check --force-exclude
@@ -40,32 +122,16 @@ repos:
           - python
           - pyi
         require_serial: true
-
-  - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v20.1.5
-    hooks:
-      - id: clang-format
-        types_or: [c++, c, cuda]
-        stages:
-          - pre-commit
-        exclude: |
-          (?x)(
-              ^(src/video_decoder/include/core/.*) |
-              ^(src/video_decoder/src/core/.*)
-          )
-
-  - repo: https://github.com/cheshirekow/cmake-format-precommit
-    rev: v0.6.13
-    hooks:
-      - id: cmake-format
-        additional_dependencies: [pyyaml]
-        types: [file]
-        files: (\.cmake|CMakeLists.txt)(.in)?$
-        stages:
-          - pre-commit
-        exclude: |
-          (?x)(
-              ^(cmake/configure/ConanProvider.cmake) |
-              ^(cmake/configure/ExtractVersion.cmake) |
-              ^(cmake/configure/GitInfo.cmake)
-          )
+      - id: pyproject-fmt
+        name: pyproject-fmt
+        entry: pyproject-fmt
+        language: python
+        files: '(^|/)pyproject\.toml$'
+        types:
+          - toml
+      - id: codespell
+        name: codespell
+        entry: codespell
+        language: python
+        types:
+          - text

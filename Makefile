@@ -1,8 +1,13 @@
+.PHONY: clean deepclean install dev prerequisites mypy ruff ruff-format pyproject-fmt codespell lint pre-commit test build publish
+########################################################################################
+# Variables
+########################################################################################
 DIST_DIR = dist
-SDK_LIB_DIR = /workspace/Video_Codec_SDK_12.1.14/Lib/linux/stubs/x86_64
-SYSTEM_LIB_DIR = /usr/lib/x86_64-linux-gnu
+# Documentation target directory, will be adapted to specific folder for readthedocs.
+PUBLIC_DIR := $(shell [ "$$READTHEDOCS" = "True" ] && echo "$${READTHEDOCS_OUTPUT}html" || echo "public")
 
-.PHONY: ruff ruff-format dev mypy lint pre-commit build ensure-lib
+# Determine the Python version used by pipx.
+PIPX_PYTHON_VERSION := $(shell `pipx environment --value PIPX_DEFAULT_PYTHON` -c "from sys import version_info; print(f'{version_info.major}.{version_info.minor}')")
 
 ########################################################################################
 # Development Environment Management
@@ -33,12 +38,34 @@ deepclean: clean
 	if command -v pre-commit > /dev/null 2>&1; then pre-commit uninstall; fi
 	if command -v pdm >/dev/null 2>&1 && pdm venv list | grep -q in-project ; then pdm venv remove --yes in-project >/dev/null 2>&1; fi
 
+# Install the package in editable mode.
 install:
-	pip install -e .
+	pdm install --prod
 
-# Prepare the development environment and activate it
-dev:
-	if [ "$(CI)" != "true" ] && command -v pre-commit >/dev/null 2>&1; then pre-commit install; fi
+# Install the package in editable mode with specific optional dependencies.
+dev-%: install
+	pdm install --lockfile pdm.dev.lock --no-default --dev --group $*
+
+# Prepare the development environment.
+# Install the package in editable mode with all optional dependencies and pre-commit hook.
+dev: install
+	pdm install --lockfile pdm.dev.lock --no-default --dev -G test -G docs
+	if [ "$(CI)" != "true" ] && command -v pre-commit > /dev/null 2>&1; then pre-commit install; fi
+
+# Lock both prod and dev dependencies.
+lock:
+	pdm lock --prod --update-reuse-installed
+	pdm lock --lockfile pdm.dev.lock --no-default --dev -G test -G docs --update-reuse-installed
+
+# Install standalone tools
+prerequisites:
+	pipx list | grep -q "package check-jsonschema 0.33.0" || pipx install --force check-jsonschema==0.33.0
+	pipx list | grep -q "package codespell 2.4.1" || pipx install --force codespell[toml]==2.4.1
+	pipx list | grep -q "package pdm 2.25.2" || pipx install --force pdm==2.25.2
+	pipx list | grep -q "package pre-commit 4.2.0" || pipx install --force pre-commit==4.2.0
+	pipx list | grep -q "package pyproject-fmt 2.5.1" || pipx install --force pyproject-fmt==2.5.1
+	pipx list | grep -q "package ruff 0.11.6" || pipx install --force ruff==0.11.6
+	pipx list | grep -q "package watchfiles 1.0.5" || pipx install --force watchfiles==1.0.5
 
 
 ########################################################################################
@@ -54,7 +81,10 @@ ruff:
 ruff-format:
 	ruff format --check .
 
-lint: ruff ruff-format mypy
+pyproject-fmt:
+	pyproject-fmt pyproject.toml
+
+lint: ruff ruff-format mypy pyproject-fmt
 
 pre-commit:
 	pre-commit run --all-files --hook-stage manual
@@ -65,47 +95,37 @@ pre-commit:
 
 # Clean and run test with coverage.
 test:
-	python -m coverage erase
-	python -m coverage run --data-file=.coverage.1 -m pytest -m "not decoder_validation"
-	python -m coverage run --data-file=.coverage.2 -m pytest -m "decoder_validation"
-	python -m coverage combine .coverage.1 .coverage.2
-
-
-########################################################################################
-# build
-########################################################################################
-
-ensure-lib:
-	@echo "Checking and copying NVIDIA libraries..."
-	@if [ ! -f "$(SYSTEM_LIB_DIR)/libnvcuvid.so.1" ] && [ -f "$(SDK_LIB_DIR)/libnvcuvid.so" ]; then \
-		echo "Copying libnvcuvid.so to $(SYSTEM_LIB_DIR)"; \
-		sudo cp "$(SDK_LIB_DIR)/libnvcuvid.so" "$(SYSTEM_LIB_DIR)/libnvcuvid.so.1"; \
-	fi
-	@echo "Library check completed."
-
-build: clean ensure-lib
-	python -m build -w
+	pdm run coverage erase
+	pdm run coverage run --data-file=.coverage.1 -m pytest -m "not decoder_validation"
+	pdm run coverage run --data-file=.coverage.2 -m pytest -m "decoder_validation"
+	pdm run coverage combine .coverage.1 .coverage.2
 
 ########################################################################################
-# publish
+# Package
 ########################################################################################
 
+# Build the package.
+build:
+	pdm build --no-sdist
+	pdm build --no-wheel --no-clean
+
+# Publish the package.
 publish:
-	twine upload $(if $(CI),--verbose) --skip-existing ${DIST_DIR}/*
+	twine upload $(if $(CI),--verbose) --skip-existing ./${DIST_DIR}/*
 
 ########################################################################################
 # pyi
 ########################################################################################
 pyi:
-	pip install -e . pybind11-stubgen
-	pybind11-stubgen videodataset._decoder -o src --ignore-all-errors
+	pdm install -d pybind11-stubgen
+	pdm run pybind11-stubgen videodataset._decoder -o src --ignore-all-errors
 
 ########################################################################################
 # docs
 ########################################################################################
 
-SPHINX_BUILD = sphinx-build
-SPHINX_AUTOBUILD = sphinx-autobuild
+SPHINX_BUILD = pdm run sphinx-build
+SPHINX_AUTOBUILD = pdm run sphinx-autobuild
 SOURCEDIR = docs
 BUILDDIR = docs/_build/html
 SPHINX_OPTS = -T -c $(SOURCEDIR) $(SOURCEDIR) $(BUILDDIR)
@@ -114,13 +134,13 @@ NITPICKY = -n
 LINKCHECK = -b linkcheck
 
 docs-prepare:
-	pip install -e .[docs]
+	pdm install -dG docs
 
 docs-generate:
 	$(SPHINX_BUILD) $(KEEP_GOING) $(SPHINX_OPTS) $(POSARGS)
 
 docs-serve:
-	pip install sphinx-autobuild
+	pdm add -dG docs sphinx-autobuild
 	$(SPHINX_AUTOBUILD) $(SPHINX_OPTS) $(POSARGS)
 
 docs-check:
@@ -141,17 +161,17 @@ BENCHMARK_WARMUP ?= on
 BENCHMARK_WARMUP_ITERATIONS ?= 4
 
 benchmark:
-	@pytest --benchmark-only --benchmark-autosave --benchmark-sort=name \
+	pdm run pytest --benchmark-only --benchmark-autosave --benchmark-sort=name \
 	--benchmark-cprofile=function_name \
 	--benchmark-cprofile-top=10 \
-	--benchmark-min-rounds=$(BENCHMARK_MIN_ROUND) \
+	--benchmark-min-rounds=$(BENCHMARK_MIN_ROUND) -W ignore \
 	--benchmark-warmup=$(BENCHMARK_WARMUP) \
 	--benchmark-warmup-iterations=$(BENCHMARK_WARMUP_ITERATIONS) \
 	$(if $(shell find .benchmarks -mindepth 2 -print -quit 2>/dev/null), \
 		--benchmark-compare-fail="$(BENCHMARK_FAIL)" --benchmark-compare,)
 
 benchmark-histogram:
-	pytest-benchmark compare --sort=name --histogram=.benchmarks/histogram
+	pdm run pytest-benchmark compare --sort=name --histogram=.benchmarks/histogram
 
 benchmark-clean:
 	find .benchmarks/ -name *.json | tail -n 1 | xargs rm

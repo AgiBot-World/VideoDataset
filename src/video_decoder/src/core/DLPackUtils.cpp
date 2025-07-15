@@ -190,6 +190,3 @@ DLTensor &DLPackTensor::operator*()
 {
     return m_tensor.dl_tensor;
 }
-
-
-

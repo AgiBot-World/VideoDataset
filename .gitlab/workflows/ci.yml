@@ -1,14 +1,15 @@
 ci:
-  tags:
-    - genie-gpu-4090
+  cache:
+    paths:
+      - .venv
+      - .benchmarks
   interruptible: true
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   script:
     - conan remote login ${DEV_ARTIFACTORY} ${ARTIFACTORY_USER} -p ${ARTIFACTORY_PASSWORD}
-    - pip install -e .[test]
-    - make lint test build
+    - make dev-test lint test build
     - |
       status=0
       make benchmark || status=$?
@@ -16,8 +17,21 @@ ci:
       make benchmark-histogram
       make benchmark-keep
       exit $status
+  tags:
+    - genie-gpu-4090
   stage: ci
+benchmark-reset:
   cache:
-    key: benchmark-cache
     paths:
+      - .venv
       - .benchmarks
+  when: manual
+  interruptible: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  script:
+    - rm .benchmarks -rf
+  tags:
+    - genie-gpu-4090
+  stage: ci

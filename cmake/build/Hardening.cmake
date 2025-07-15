@@ -80,7 +80,7 @@ endif()
 
 set(USE_HARDENING_SKIP_TARGETS_REGEXES
     ""
-    CACHE STRING "List of regexes to skip targts")
+    CACHE STRING "List of regexes to skip targets")
 
 message(
   STATUS
@@ -89,7 +89,7 @@ message(
     USE_HARDENING: Enable hardening compilation flags. Default is ${USE_HARDENING}.
     USE_HARDENING_FLAGS: Default is ${USE_HARDENING_FLAGS}
     USE_HARDENING_LINKS: Default is ${USE_HARDENING_LINKS}
-    USE_HARDENING_SKIP_TARGETS_REGEXES: List of regexes to skip targts. Default is empty."
+    USE_HARDENING_SKIP_TARGETS_REGEXES: List of regexes to skip targets. Default is empty."
 )
 
 if(NOT USE_HARDENING)
@@ -141,7 +141,7 @@ if(NOT DEFINED CACHE{__HARDENING_FLAGS_HASH} OR NOT __HARDENING_FLAGS_HASH
 
   flags_to_list(__HARDENING_LINKS "${__HARDENING_LINKS}")
 
-  # Handle the conflics between hardening ubsan and asan
+  # Handle the conflicts between hardening ubsan and asan
   if(TARGET sanitizer_flags)
     get_target_property(_san sanitizer_flags _san)
 

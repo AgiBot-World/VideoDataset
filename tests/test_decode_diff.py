@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import multiprocessing as mp
 import os
-from pathlib import Path
 
 import cv2
 import numpy as np
+import pytest
 import torch
 from skimage.metrics import structural_similarity as ssim
 from torch.utils.data import DataLoader, Dataset
@@ -90,16 +92,16 @@ def get_sim_results(img1, img2):
 
 
 class MyDataset(Dataset):
-    def __init__(self, gpuid, datas, output_path):
+    def __init__(self, gpuid, data, output_path):
         pass
         self.codec = "h265"
         self.gpuid = gpuid
         self.decoder = None
-        self.datas = datas
+        self.data = data
         self.output_path = output_path
 
     def __len__(self):
-        return len(self.datas)
+        return len(self.data)
 
     def nv12_to_rgb(self, nv12_tensor, width, height):
         try:
@@ -140,7 +142,7 @@ class MyDataset(Dataset):
         if not self.decoder:
             self.decoder = VideoDecoder(self.gpuid, self.codec)
         try:
-            data = self.datas[idx]
+            data = self.data[idx]
             video = data["video"]
             idx = data["idx"]
             img = data["img"]
@@ -166,10 +168,13 @@ class MyDataset(Dataset):
 
 def test_decode_diff():
     gpuid = 0
-    random_video_file = os.path.join(Path(__file__).parent, "randomvideo")
+    random_video_file = os.environ.get("RANDOM_VIDEO_FILE", "")
+    if not random_video_file:
+        pytest.skip("RANDOM_VIDEO_FILE not set")
+
     output_dir = "output"
 
-    datas = []
+    data = []
     with open(random_video_file, "r") as f:
         for line in f.readlines():
             line = line.strip()
@@ -177,11 +182,11 @@ def test_decode_diff():
             paths = video.split("/")
             job = paths[5]
             episode = paths[6]
-            datas.append(
+            data.append(
                 {"video": video, "idx": idx, "img": img, "job": job, "episode": episode}
             )
 
-    dataset = MyDataset(gpuid, datas, output_dir)
+    dataset = MyDataset(gpuid, data, output_dir)
 
     spawn_ctx = mp.get_context("spawn")
     dataloader = DataLoader(

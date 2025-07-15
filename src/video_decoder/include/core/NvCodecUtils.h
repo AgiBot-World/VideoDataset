@@ -29,7 +29,7 @@
 //! \file NvCodecUtils.h
 //! \brief Miscellaneous classes and error checking functions.
 //!
-//! Used by Transcode/Encode samples apps for reading input files, mutithreading, performance measurement or colorspace conversion while decoding.
+//! Used by Transcode/Encode samples apps for reading input files, multithreading, performance measurement or colorspace conversion while decoding.
 //---------------------------------------------------------------------------
 
 #pragma once
