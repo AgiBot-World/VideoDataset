@@ -26,13 +26,12 @@ classifiers = [
 ]
 dynamic = [ "version" ]
 dependencies = [
+  "lerobot @ git+https://ghfast.top/https://github.com/huggingface/lerobot.git@dfb1571b",
   "numpy",
-  "opencv-python",
   "pillow>=10.4",
   "scipy",
-  "torch>=2.5",
+  "torch>=2.5; platform_system=='Linux'",
   "torchvision>=0.20",
-  "transformers",
 ]
 urls.changelog = "https://code.agibot.com/ai-platform/videodataset/-/releases"
 urls.issue = "https://code.agibot.com/ai-platform/videodataset/-/issues"

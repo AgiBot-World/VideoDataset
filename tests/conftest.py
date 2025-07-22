@@ -73,3 +73,16 @@ def test_video(ffmpeg_path, tmp_path_factory):
         pytest.fail("Test video was not created successfully")
 
     return video_path
+
+
+@pytest.fixture
+def lerobot_svla_so100_stacking_path():
+    _path = os.environ.get(
+        "LEROBOT_SVLA_SO100_STACKING_PATH",
+        "/mnt/public/huxingyu/lerobot/svla_so100_stacking",
+    )
+
+    if not os.path.exists(_path):
+        pytest.skip("LEROBOT_SVLA_SO100_STACKING_PATH not set")
+
+    return _path

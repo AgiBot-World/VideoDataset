@@ -169,7 +169,7 @@ class MyDataset(Dataset):
 def test_decode_diff():
     gpuid = 0
     random_video_file = os.environ.get("RANDOM_VIDEO_FILE", "")
-    if not random_video_file:
+    if not os.path.exists(random_video_file):
         pytest.skip("RANDOM_VIDEO_FILE not set")
 
     output_dir = "output"
