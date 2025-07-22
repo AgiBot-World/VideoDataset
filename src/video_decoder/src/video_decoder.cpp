@@ -21,7 +21,6 @@ VideoDecoder::VideoDecoder(int gpuid, const std::string& codec)
       codec(codec),
       codec_type(AV_CODEC_ID_HEVC),
       cu_ctx(nullptr),
-      destroy(false),
       decoder(nullptr),
       fmt_ctx_(nullptr),
       pkt(nullptr),
@@ -37,12 +36,9 @@ VideoDecoder::VideoDecoder(int gpuid, const std::string& codec)
                                     + "]");
     }
 
-    // Get or create CUDA context
-    ck(cuCtxGetCurrent(&cu_ctx));
-    if (!cu_ctx) {
-        ck(cuCtxCreate(&cu_ctx, 0, gpuid));
-        destroy = true;
-    }
+    cuDeviceGet(&dev, 0);
+    ck(cuDevicePrimaryCtxRetain(&cu_ctx, dev));
+    cuCtxSetCurrent(cu_ctx);
 
     // Parse codec type
     if (codec == "h265") {
@@ -85,9 +81,8 @@ VideoDecoder::VideoDecoder(int gpuid, const std::string& codec)
 // Destructor: Release all resources
 VideoDecoder::~VideoDecoder() {
     delete decoder;
-    if (destroy) {
-        cuCtxDestroy(cu_ctx);
-    }
+
+    ck(cuDevicePrimaryCtxRelease(dev));
     if (pkt) {
         av_packet_free(&pkt);
         std::cout << "VideoDecoder: AVPacket released\n";
@@ -178,7 +173,7 @@ DecodedFrame VideoDecoder::decode(const std::string& videoPath, const int target
     // Calculate target timestamp from frame number
     AVStream* video_stream = fmt_ctx->streams[video_stream_idx];
     const double fps = av_q2d(video_stream->avg_frame_rate); // Calculate FPS
-    const double target_time = targetFrame / fps;           // Target time (seconds)
+    const double target_time = targetFrame / fps;            // Target time (seconds)
     const int64_t target_pts = av_rescale_q(                 // Convert timebase
         static_cast<int64_t>(target_time * AV_TIME_BASE),
         AV_TIME_BASE_Q,

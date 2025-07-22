@@ -130,7 +130,6 @@ xfail_strict = true
 filterwarnings = [ "error" ]
 log_cli_level = "INFO"
 testpaths = [ "tests" ]
-markers = [ "decoder_validation" ]
 
 [tool.coverage]
 run.source = [ "videodataset" ]

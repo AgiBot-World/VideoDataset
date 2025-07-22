@@ -1,17 +1,17 @@
-import random
-import logging
+from __future__ import annotations
 
+import logging
+import random
 from abc import ABC, abstractmethod
 from typing import Any, List
 
-import torch
 import numpy as np
+import torch
 from PIL import Image
 from torch.utils.data import Dataset
 
-from videodataset.utils.video_util import nv12_to_rgb
 from videodataset import VideoDecoder
-
+from videodataset.utils.video_util import nv12_to_rgb
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +93,3 @@ class BaseVideoDataset(Dataset, ABC):
     def getitem(self, idx):
         raw_sample = self.frames[idx]
         return raw_sample
-
-    def __del__(self):
-        for decoder_name in reversed(self.decoder_name_list):
-            del self.decoders[decoder_name]

@@ -7,7 +7,7 @@
 class VideoDecoder {
 private:
     CUcontext cu_ctx = nullptr; // CUDA context for GPU operations
-    // Add new member variables
+    CUdevice dev = 0;
     AVBSFContext* bsf_ctx_ = nullptr; // Bitstream filter context
     AVPacket* pkt = nullptr;          // Packet pointer
     AVPacket* pktFiltered = nullptr;
@@ -24,7 +24,6 @@ public:
     ~VideoDecoder();
     DecodedFrame decode(const std::string& videoPath, const int targetFrame);
     AVFormatContext* open(const std::string& videoPath);
-    bool destroy = false;
     int gpuId;         // ID of the GPU being used for decoding
     std::string codec; // Video codec format being decoded
 };

@@ -96,9 +96,7 @@ pre-commit:
 # Clean and run test with coverage.
 test:
 	pdm run coverage erase
-	pdm run coverage run --data-file=.coverage.1 -m pytest -m "not decoder_validation"
-	pdm run coverage run --data-file=.coverage.2 -m pytest -m "decoder_validation"
-	pdm run coverage combine .coverage.1 .coverage.2
+	pdm run coverage run -m pytest
 
 ########################################################################################
 # Package
