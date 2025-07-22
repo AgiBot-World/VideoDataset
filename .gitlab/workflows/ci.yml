@@ -9,7 +9,7 @@ ci:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   script:
     - conan remote login ${DEV_ARTIFACTORY} ${ARTIFACTORY_USER} -p ${ARTIFACTORY_PASSWORD}
-    - make dev-test lint test build
+    - make dev-test lint test pyi build
     - |
       status=0
       make benchmark || status=$?

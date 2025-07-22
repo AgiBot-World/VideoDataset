@@ -3,7 +3,17 @@ from __future__ import annotations
 import torch
 
 
-def nv12_to_rgb(nv12_tensor, width, height):
+def nv12_to_rgb(nv12_tensor: torch.Tensor, width: int, height: int) -> torch.Tensor:
+    """Convert NV12 format tensor to RGB format.
+
+    Args:
+        nv12_tensor (torch.Tensor): Tensor in NV12 format.
+        width (int): Width of the tensor.
+        height (int): Height of the tensor.
+
+    Returns:
+        torch.Tensor: Tensor in RGB format.
+    """
     nv12_tensor_f = nv12_tensor.to(dtype=torch.float32)
 
     # Extract Y and UV components

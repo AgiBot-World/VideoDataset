@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import torch
 from lerobot.datasets.lerobot_dataset import LeRobotDataset  # type: ignore
@@ -20,11 +21,14 @@ class LeRobotVideoDataset(LeRobotDataset, BaseVideoDataset):
     - Compatible with all LeRobot dataset formats
     """
 
-    def __init__(self, *args, **kwargs):
-        LeRobotDataset.__init__(self, *args, **kwargs)
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
         BaseVideoDataset.__init__(self)
         logger.info(
-            f"Initialized {self.__class__.__name__} with args={args}, kwargs={kwargs}"
+            "Initialized %s with args=%s, kwargs=%s",
+            self.__class__.__name__,
+            args,
+            kwargs,
         )
 
     def _query_videos(
@@ -80,9 +84,13 @@ class LeRobotVideoDataset(LeRobotDataset, BaseVideoDataset):
                 item[vid_key] = frames.squeeze(0)
             except Exception as e:
                 logger.error(
-                    f"Error processing video {vid_key} at episode {ep_idx}: {e}"
+                    "Error processing video %s at episode %d: %s",
+                    vid_key,
+                    ep_idx,
+                    e,
                 )
-                raise RuntimeError(f"Failed to process video {vid_key}") from e
+                msg = f"Failed to process video {vid_key}"
+                raise RuntimeError(msg) from e
         return item
 
     def _format_frame_tensor(
@@ -100,11 +108,11 @@ class LeRobotVideoDataset(LeRobotDataset, BaseVideoDataset):
         """
         if frame_tensor.dim() == 3 and frame_tensor.shape[0] == 3:
             return frame_tensor
-        elif frame_tensor.dim() == 3 and frame_tensor.shape[-1] == 3:
+        if frame_tensor.dim() == 3 and frame_tensor.shape[-1] == 3:
             return frame_tensor.permute(2, 0, 1)
-        else:
-            logger.error(f"Unexpected tensor shape for {vid_key}: {frame_tensor.shape}")
-            raise ValueError(
-                f"Unexpected tensor shape for {vid_key}: {frame_tensor.shape}. "
-                "Expected (C, H, W) or (H, W, C) with 3 channels."
-            )
+        logger.error("Unexpected tensor shape for %s: %s", vid_key, frame_tensor.shape)
+        msg = (
+            f"Unexpected tensor shape for {vid_key}: {frame_tensor.shape}. "
+            "Expected (C, H, W) or (H, W, C) with 3 channels."
+        )
+        raise ValueError(msg)

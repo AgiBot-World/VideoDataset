@@ -35,8 +35,7 @@ def test_lerobot_benchmark(benchmark, lerobot_svla_so100_stacking_path):
     )
 
     def iter():
-        for i, sample in enumerate(vt_dataset):
-            yield i, sample
+        yield from enumerate(vt_dataset)
 
     benchmark.pedantic(
         lambda: next(iter()),

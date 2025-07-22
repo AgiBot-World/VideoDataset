@@ -116,7 +116,7 @@ repos:
           - pre-push
       - id: mypy
         name: mypy
-        entry: python -m mypy
+        entry: mypy
         language: system
         types_or:
           - python

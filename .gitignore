@@ -210,3 +210,7 @@ __marimo__/
 
 # benchmarks
 /.benchmarks
+
+
+# _decoder.pyi
+_decoder.pyi

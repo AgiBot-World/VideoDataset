@@ -115,7 +115,7 @@ publish:
 # pyi
 ########################################################################################
 pyi:
-	pdm install -d pybind11-stubgen
+	pdm install --lockfile pdm.dev.lock --no-default --dev -G dev
 	pdm run pybind11-stubgen videodataset._decoder -o src --ignore-all-errors
 
 ########################################################################################
@@ -132,13 +132,13 @@ NITPICKY = -n
 LINKCHECK = -b linkcheck
 
 docs-prepare:
-	pdm install -dG docs
+	pdm add -dG docs
 
 docs-generate:
 	$(SPHINX_BUILD) $(KEEP_GOING) $(SPHINX_OPTS) $(POSARGS)
 
 docs-serve:
-	pdm add -dG docs sphinx-autobuild
+	pdm install --lockfile pdm.dev.lock --no-default --dev -G dev
 	$(SPHINX_AUTOBUILD) $(SPHINX_OPTS) $(POSARGS)
 
 docs-check:

@@ -1,6 +1,5 @@
 ---
 # https://clang.llvm.org/docs/ClangFormatStyleOptions.html
----
 Language: Cpp
 # Do not offset access specifiers (public, protected, private)
 AccessModifierOffset: -4

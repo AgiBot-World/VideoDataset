@@ -32,8 +32,9 @@ target_include_interface_directories(
   ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
 target_link_libraries(
-  ${target_name_internal} PUBLIC nvcuvid cuda ${FFMPEG_LIBRARIES}
-                                  dlpack::dlpack Python::Python pybind11::headers)
+  ${target_name_internal}
+  PUBLIC nvcuvid cuda ${FFMPEG_LIBRARIES} dlpack::dlpack Python::Python
+         pybind11::headers)
 
 pybind11_add_module(${target_name} MODULE pybind/bind.cpp)
 warn_target(${target_name})

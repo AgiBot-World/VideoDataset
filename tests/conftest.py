@@ -8,26 +8,6 @@ from pathlib import Path
 import pytest
 
 
-@pytest.fixture
-def tests_dir():
-    """Get the directory of the tests."""
-    return Path(__file__).parent
-
-
-@pytest.fixture
-def parent_dir(request):
-    """Get the parent directory for test data.
-
-    Priority:
-    1. Use directory specified by TEST_DATA_DIR environment variable
-    2. Fallback to the parent directory of the test file
-    """
-    parent_dir = os.environ.get("TEST_DATA_DIR")
-    if parent_dir:
-        return Path(parent_dir)
-    return Path(__file__).parent
-
-
 @pytest.fixture(scope="session")
 def ffmpeg_path():
     """Check FFmpeg availability and return path"""
@@ -82,7 +62,7 @@ def lerobot_svla_so100_stacking_path():
         "/mnt/public/huxingyu/lerobot/svla_so100_stacking",
     )
 
-    if not os.path.exists(_path):
+    if not Path(_path).exists():
         pytest.skip("LEROBOT_SVLA_SO100_STACKING_PATH not set")
 
     return _path

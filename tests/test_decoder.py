@@ -22,21 +22,22 @@ def test_init():
 
 
 def test_invalid_gpu():
-    # Test invalid GPU ID initialization with out-of-range value 999 and H.265 codec
-    with pytest.raises(Exception) as exc_info:
+    """Test invalid GPU ID initialization with out-of-range value 999 and H.265 codec."""
+    with pytest.raises(
+        ValueError,
+        match="GPU ordinal out of range",
+    ):
         # Attempt to create decoder with invalid GPU ID (should trigger error)
         VideoDecoder(999, "h265")
-    # Verify error message contains "Invalid GPU ID" text pattern
-    assert "GPU ordinal out of range" in str(exc_info.value)
 
 
 def test_decode_sample(test_video):
-    # Create decoder instance with GPU ID 0 and H.265 codec
+    """Create decoder instance with GPU ID 0 and H.265 codec."""
     VideoDecoder(0, "h265").decode(str(test_video), 0)
 
 
 def test_open_invalid_file():
-    # Create decoder instance with GPU ID 0 and H.265 codec
+    """Create decoder instance with GPU ID 0 and H.265 codec."""
     decoder = VideoDecoder(0, "h265")
 
     # Verify that opening invalid file raises RuntimeError
@@ -49,6 +50,7 @@ def test_open_invalid_file():
 
 
 def test_unsupported_codec():
+    """Create decoder instance with GPU ID 0 and unsupported codec."""
     with pytest.raises(RuntimeError) as exc_info:
         VideoDecoder(0, "unknown")
     assert "Unsupported codec" in str(exc_info.value)
@@ -86,6 +88,7 @@ def test_decode_validation_with_frames(test_video):
     ids=["block[0:3]", "block[3:6]", "block[6:9]"],
 )
 def test_decode_range(benchmark, test_video, block):
+    """Decode a range of frames from a video."""
     benchmark.pedantic(
         video_decode,
         args=(test_video, block),

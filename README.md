@@ -13,7 +13,65 @@ Video Dataset with NvCodec.
 [![cmake-format](https://img.shields.io/badge/cmake--format-enabled-blue)](https://github.com/cheshirekow/cmake-format-precommit)
 [![markdownlint](https://img.shields.io/badge/markdownlint-enabled-blue)](https://github.com/igorshubovych/markdownlint-cli)
 
-<!-- writes more things here -->
+## Overview
+
+VideoDataset is a high-performance video decoding multi-framework supporting library. It aims to provide framework-integrated solutions for working with video decoding tasks. Now it supports the following frameworks:
+
+- LeRobot Dataset.
+- ...
+
+Key Features:
+
+- GPU-accelerated video decoding using NvCodec library
+- Support for common video formats (H.264, H.265, etc.)
+- Easy integration with multi-frameworks and multi-formats.
+
+## Installation
+
+### Building from Source
+
+Prerequisites:
+
+- NVIDIA GPU with CUDA support and CUDA Toolkit installed
+- FFmpeg libraries
+
+```bash
+git clone https://code.agibot.com/ai-platform/videodataset.git
+make install pyi build
+```
+
+## Quick Start
+
+Quick start with LeRobot Dataset with the installation of `pip install videodataset` and the following code:
+
+```python
+from videodataset.dataset.lerobot_dataset import LeRobotVideoDataset
+import torch
+
+lerobot_svla_so100_stacking_path = "/path/to/lerobot_svla_so100_stacking"
+
+vt_dataset = LeRobotVideoDataset(
+    repo_id=None,
+    root=lerobot_svla_so100_stacking_path,
+)
+
+# Create a DataLoader
+dataloader = torch.utils.data.DataLoader(
+    vt_dataset,
+    batch_size=4,
+    shuffle=True,
+    num_workers=0,
+)
+
+# Iterate over the DataLoader
+for i, batch in enumerate(dataloader):
+    # Do something with the batch
+    # ...
+```
+
+## Documentation
+
+Full documentation is available at: [Documentation](code.agibot.com/ai-platform/videodataset/-/tree/main/docs).
 
 ## License
 
