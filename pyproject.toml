@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "scikit_build_core.build"
-requires = [ "conan~=2.17.0", "scikit-build-core" ]
+requires = [ "conan~=2.17.0", "pybind11-stubgen", "scikit-build-core" ]
 
 [project]
 name = "videodataset"
@@ -41,7 +41,6 @@ urls.repository = "https://code.agibot.com/ai-platform/videodataset"
 
 [dependency-groups]
 dev = [
-  "pybind11-stubgen>=2.5.4",
   "sphinx-autobuild>=2024.10.3",
 ]
 test = [

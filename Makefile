@@ -109,18 +109,10 @@ test:
 # Build the package.
 build:
 	pdm build --no-sdist
-	pdm build --no-wheel --no-clean
 
 # Publish the package.
 publish:
 	twine upload $(if $(CI),--verbose) --skip-existing ./${DIST_DIR}/*
-
-########################################################################################
-# pyi
-########################################################################################
-pyi:
-	pdm install --lockfile pdm.dev.lock --no-default --dev -G dev
-	pdm run pybind11-stubgen videodataset._decoder -o src --ignore-all-errors
 
 ########################################################################################
 # docs

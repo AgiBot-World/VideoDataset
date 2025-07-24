@@ -5,7 +5,7 @@
 groups = ["dev", "docs", "lerobot", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:b8bea9ef660eb95229a597a6be254b8dfcb4240b2bb11192e2e8e31289688393"
+content_hash = "sha256:773bfe3305866dbad69999764fafb1b1279c7b5f3a65b972c51a183ec45abdf6"
 
 [[metadata.targets]]
 requires_python = ">=3.10"
@@ -2469,17 +2469,6 @@ files = [
     {file = "pyarrow-20.0.0-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:e724a3fd23ae5b9c010e7be857f4405ed5e679db5c93e66204db1a69f733936a"},
     {file = "pyarrow-20.0.0-cp313-cp313t-win_amd64.whl", hash = "sha256:82f1ee5133bd8f49d31be1299dc07f585136679666b502540db854968576faf9"},
     {file = "pyarrow-20.0.0.tar.gz", hash = "sha256:febc4a913592573c8d5805091a6c2b5064c8bd6e002131f01061797d91c783c1"},
-]
-
-[[package]]
-name = "pybind11-stubgen"
-version = "2.5.4"
-requires_python = "~=3.7"
-summary = "PEP 561 type stubs generator for pybind11 modules"
-groups = ["dev"]
-files = [
-    {file = "pybind11_stubgen-2.5.4-py3-none-any.whl", hash = "sha256:8625f25da48cf96eea24ba7cae673b5f49b45847b6ef01eead60c4eb762fe5c5"},
-    {file = "pybind11_stubgen-2.5.4.tar.gz", hash = "sha256:b6bd44a6d4ba55cef80bd8af92f1f8195b1c6bb0f7bd2f6d785c9530ce6bcae9"},
 ]
 
 [[package]]
