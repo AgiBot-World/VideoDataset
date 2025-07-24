@@ -9,12 +9,6 @@ from videodataset import VideoDecoder
 from videodataset.utils.video_util import nv12_to_rgb
 
 
-def video_decode(video, frames: list):
-    decoder = VideoDecoder(0, "h265")
-    for index in frames:
-        decoder.decode(str(video), index)
-
-
 def test_init():
     """Test CUDA context creation with valid and invalid GPU IDs."""
     # Test with valid GPU ID
@@ -81,17 +75,12 @@ def test_decode_validation_with_frames(test_video):
         assert np.allclose(read_frames[i], frame_rgb_np, atol=3)
 
 
-@pytest.mark.benchmark(group="block_decode")
-@pytest.mark.parametrize(
-    "block",
-    [(0, 3), (3, 6), (6, 9)],
-    ids=["block[0:3]", "block[3:6]", "block[6:9]"],
-)
-def test_decode_range(benchmark, test_video, block):
+@pytest.mark.benchmark(group="video_decoder_decode")
+def test_decode_benchmark(benchmark, test_video):
     """Decode a range of frames from a video."""
+    decoder = VideoDecoder(0, "h265")
     benchmark.pedantic(
-        video_decode,
-        args=(test_video, block),
+        lambda: [decoder.decode(str(test_video), i) for i in range(9)],
         iterations=4,
-        rounds=10,
+        rounds=100,
     )
