@@ -26,12 +26,14 @@ classifiers = [
 ]
 dynamic = [ "version" ]
 dependencies = [
-  "lerobot @ git+https://ghfast.top/https://github.com/huggingface/lerobot.git@dfb1571b",
   "numpy",
   "pillow>=10.4",
   "scipy",
   "torch>=2.5",
   "torchvision>=0.20",
+]
+optional-dependencies.lerobot = [
+  "lerobot @ git+https://github.com/huggingface/lerobot.git@dfb1571b",
 ]
 urls.changelog = "https://code.agibot.com/ai-platform/videodataset/-/releases"
 urls.issue = "https://code.agibot.com/ai-platform/videodataset/-/issues"
@@ -131,6 +133,7 @@ check-filenames = true
 minversion = "6.0"
 addopts = [
   "-ra",
+  "--durations=0",
   "--showlocals",
   "--strict-markers",
   "--strict-config",

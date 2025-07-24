@@ -38,7 +38,11 @@ deepclean: clean
 	if command -v pre-commit > /dev/null 2>&1; then pre-commit uninstall; fi
 	if command -v pdm >/dev/null 2>&1 && pdm venv list | grep -q in-project ; then pdm venv remove --yes in-project >/dev/null 2>&1; fi
 
-# Install the package in editable mode.
+# Install the package in editable mode with specific optional dependencies.
+install-%:
+	pdm install --prod --group $*
+
+# Install the package in editable mode with all optional dependencies.
 install:
 	pdm install --prod
 
@@ -54,8 +58,8 @@ dev: install
 
 # Lock both prod and dev dependencies.
 lock:
-	pdm lock --prod --update-reuse-installed
-	pdm lock --lockfile pdm.dev.lock --no-default --dev --update-reuse-installed
+	pdm lock --prod --group lerobot --update-reuse-installed
+	pdm lock --lockfile pdm.dev.lock --no-default --dev --group lerobot --update-reuse-installed
 
 # Install standalone tools
 prerequisites:

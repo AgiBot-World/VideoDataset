@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from lerobot.datasets.lerobot_dataset import LeRobotDataset  # type: ignore
+
+try:
+    from lerobot.datasets.lerobot_dataset import LeRobotDataset  # type: ignore
+except ImportError:
+    pytestmark = pytest.mark.skip("lerobot not installed, skipping test")
+
 
 from videodataset.dataset.lerobot_dataset import LeRobotVideoDataset
 

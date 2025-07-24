@@ -8,6 +8,14 @@ from pathlib import Path
 import pytest
 
 
+@pytest.fixture
+def lerobot_check():
+    try:
+        import lerobot  # type: ignore
+    except ImportError:
+        pytest.skip("lerobot not installed, install with videodataset[lerobot]")
+
+
 @pytest.fixture(scope="session")
 def ffmpeg_path():
     """Check FFmpeg availability and return path"""
