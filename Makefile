@@ -127,8 +127,7 @@ KEEP_GOING = --keep-going
 NITPICKY = -n
 LINKCHECK = -b linkcheck
 
-docs-prepare:
-	pdm add -dG docs
+docs-prepare: dev-docs
 
 docs-generate:
 	$(SPHINX_BUILD) $(KEEP_GOING) $(SPHINX_OPTS) $(POSARGS)
