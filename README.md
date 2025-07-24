@@ -71,7 +71,7 @@ for i, batch in enumerate(dataloader):
 
 ## Documentation
 
-Full documentation is available at: [Documentation](code.agibot.com/ai-platform/videodataset/-/tree/main/docs).
+Full documentation is available at: [Documentation](https://code.agibot.com/ai-platform/videodataset/-/tree/main/docs).
 
 ## License
 

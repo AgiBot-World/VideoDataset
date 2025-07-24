@@ -30,7 +30,7 @@ dependencies = [
   "numpy",
   "pillow>=10.4",
   "scipy",
-  "torch>=2.5; platform_system=='Linux'",
+  "torch>=2.5",
   "torchvision>=0.20",
 ]
 urls.changelog = "https://code.agibot.com/ai-platform/videodataset/-/releases"
@@ -42,7 +42,6 @@ dev = [
   "pybind11-stubgen>=2.5.4",
   "sphinx-autobuild>=2024.10.3",
 ]
-
 test = [
   "pytest>=6",
   "pytest-benchmark[histogram]",

@@ -49,13 +49,13 @@ dev-%: install
 # Prepare the development environment.
 # Install the package in editable mode with all optional dependencies and pre-commit hook.
 dev: install
-	pdm install --lockfile pdm.dev.lock --no-default --dev -G test -G docs -G dev
+	pdm install --lockfile pdm.dev.lock --no-default --dev
 	if [ "$(CI)" != "true" ] && command -v pre-commit > /dev/null 2>&1; then pre-commit install; fi
 
 # Lock both prod and dev dependencies.
 lock:
 	pdm lock --prod --update-reuse-installed
-	pdm lock --lockfile pdm.dev.lock --no-default --dev -G test -G docs -G dev --update-reuse-installed
+	pdm lock --lockfile pdm.dev.lock --no-default --dev --update-reuse-installed
 
 # Install standalone tools
 prerequisites:
