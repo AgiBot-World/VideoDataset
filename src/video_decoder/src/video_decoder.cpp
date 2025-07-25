@@ -11,13 +11,13 @@ extern "C" {
  * It maps the codec string to the appropriate AVCodecID, validates the codec,
  * and initializes the DecoderCore with the corresponding CUDA context and codec ID.
  *
- * @param gpuid The GPU device ID (0-based index) to be used for CUDA operations.
+ * @param gpuId The GPU device ID (0-based index) to be used for CUDA operations.
  * @param codec A string representing the video codec (e.g., "h264", "h265", "vp9", "av1").
  * @throws std::invalid_argument if an unsupported codec is provided.
  * @throws std::runtime_error if there is an issue during the initialization of DecoderCore.
  */
-VideoDecoder::VideoDecoder(int gpuid, const std::string& codec)
-    : gpuId(gpuid),
+VideoDecoder::VideoDecoder(int gpuId, const std::string& codec)
+    : gpuId(gpuId),
       codec(codec),
       codec_type(AV_CODEC_ID_HEVC),
       cu_ctx(nullptr),
@@ -31,12 +31,12 @@ VideoDecoder::VideoDecoder(int gpuid, const std::string& codec)
     // Validate GPU device availability
     int device_count = 0;
     ck(cuDeviceGetCount(&device_count));
-    if (gpuid < 0 || gpuid >= device_count) {
+    if (gpuId < 0 || gpuId >= device_count) {
         throw std::invalid_argument("GPU ordinal out of range. Should be within [0, " + std::to_string(device_count - 1)
                                     + "]");
     }
 
-    cuDeviceGet(&dev, 0);
+    cuDeviceGet(&dev, gpuId);
     ck(cuDevicePrimaryCtxRetain(&cu_ctx, dev));
     cuCtxSetCurrent(cu_ctx);
 

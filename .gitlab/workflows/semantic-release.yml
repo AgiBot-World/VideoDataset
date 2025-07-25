@@ -2,7 +2,6 @@ semantic-release:
   stage: release
   tags:
     - compiler
-  when: manual
   interruptible: true
   image:
     name: ${HARBOR_HOST}/${HARBOR_PROJECT}/lib/node:22.11.0

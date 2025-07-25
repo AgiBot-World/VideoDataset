@@ -18,9 +18,9 @@ private:
 
 public:
     // Constructor: creates a video decoder instance
-    // @param gpuid: GPU device ID to use for decoding
+    // @param gpuId: GPU device ID to use for decoding
     // @param codec: Name of the video codec (e.g., "h264", "hevc")
-    VideoDecoder(int gpuid, const std::string& codec);
+    VideoDecoder(int gpuId, const std::string& codec);
     ~VideoDecoder();
     DecodedFrame decode(const std::string& videoPath, const int targetFrame);
     AVFormatContext* open(const std::string& videoPath);
