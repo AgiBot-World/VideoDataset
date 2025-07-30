@@ -5,7 +5,7 @@
 groups = ["dev", "docs", "lerobot", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:773bfe3305866dbad69999764fafb1b1279c7b5f3a65b972c51a183ec45abdf6"
+content_hash = "sha256:548fcb5ff8096b5c16d3831592463b72dabab8876817bc6425a31c144bc4d120"
 
 [[metadata.targets]]
 requires_python = ">=3.10"
@@ -140,7 +140,7 @@ name = "annotated-types"
 version = "0.7.0"
 requires_python = ">=3.8"
 summary = "Reusable constraint types to use with typing.Annotated"
-groups = ["lerobot"]
+groups = ["lerobot", "test"]
 dependencies = [
     "typing-extensions>=4.0.0; python_version < \"3.9\"",
 ]
@@ -2035,6 +2035,26 @@ files = [
 ]
 
 [[package]]
+name = "opencv-python"
+version = "4.12.0.88"
+requires_python = ">=3.6"
+summary = "Wrapper package for OpenCV python bindings."
+groups = ["test"]
+dependencies = [
+    "numpy<2.0; python_version < \"3.9\"",
+    "numpy<2.3.0,>=2; python_version >= \"3.9\"",
+]
+files = [
+    {file = "opencv-python-4.12.0.88.tar.gz", hash = "sha256:8b738389cede219405f6f3880b851efa3415ccd674752219377353f017d2994d"},
+    {file = "opencv_python-4.12.0.88-cp37-abi3-macosx_13_0_arm64.whl", hash = "sha256:f9a1f08883257b95a5764bf517a32d75aec325319c8ed0f89739a57fae9e92a5"},
+    {file = "opencv_python-4.12.0.88-cp37-abi3-macosx_13_0_x86_64.whl", hash = "sha256:812eb116ad2b4de43ee116fcd8991c3a687f099ada0b04e68f64899c09448e81"},
+    {file = "opencv_python-4.12.0.88-cp37-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:51fd981c7df6af3e8f70b1556696b05224c4e6b6777bdd2a46b3d4fb09de1a92"},
+    {file = "opencv_python-4.12.0.88-cp37-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:092c16da4c5a163a818f120c22c5e4a2f96e0db4f24e659c701f1fe629a690f9"},
+    {file = "opencv_python-4.12.0.88-cp37-abi3-win32.whl", hash = "sha256:ff554d3f725b39878ac6a2e1fa232ec509c36130927afc18a1719ebf4fbf4357"},
+    {file = "opencv_python-4.12.0.88-cp37-abi3-win_amd64.whl", hash = "sha256:d98edb20aa932fd8ebd276a72627dad9dc097695b3d435a4257557bbb49a79d2"},
+]
+
+[[package]]
 name = "opencv-python-headless"
 version = "4.12.0.88"
 requires_python = ">=3.6"
@@ -2487,7 +2507,7 @@ name = "pydantic"
 version = "2.11.7"
 requires_python = ">=3.9"
 summary = "Data validation using Python type hints"
-groups = ["lerobot"]
+groups = ["lerobot", "test"]
 dependencies = [
     "annotated-types>=0.6.0",
     "pydantic-core==2.33.2",
@@ -2504,7 +2524,7 @@ name = "pydantic-core"
 version = "2.33.2"
 requires_python = ">=3.9"
 summary = "Core functionality for Pydantic validation and serialization"
-groups = ["lerobot"]
+groups = ["lerobot", "test"]
 dependencies = [
     "typing-extensions!=4.7.0,>=4.6.0",
 ]
@@ -2586,6 +2606,22 @@ files = [
     {file = "pydantic_core-2.33.2-pp311-pypy311_pp73-musllinux_1_1_x86_64.whl", hash = "sha256:82f68293f055f51b51ea42fafc74b6aad03e70e191799430b90c13d643059ebb"},
     {file = "pydantic_core-2.33.2-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:329467cecfb529c925cf2bbd4d60d2c509bc2fb52a20c1045bf09bb70971a9c1"},
     {file = "pydantic_core-2.33.2.tar.gz", hash = "sha256:7cb8bc3605c29176e1b105350d2e6474142d7c1bd1d9327c4a9bdb46bf827acc"},
+]
+
+[[package]]
+name = "pydantic-settings"
+version = "2.10.1"
+requires_python = ">=3.9"
+summary = "Settings management using Pydantic"
+groups = ["test"]
+dependencies = [
+    "pydantic>=2.7.0",
+    "python-dotenv>=0.21.0",
+    "typing-inspection>=0.4.0",
+]
+files = [
+    {file = "pydantic_settings-2.10.1-py3-none-any.whl", hash = "sha256:a60952460b99cf661dc25c29c0ef171721f98bfcb52ef8d9ea4c943d7c8cc796"},
+    {file = "pydantic_settings-2.10.1.tar.gz", hash = "sha256:06f0062169818d0f5524420a360d632d5857b83cffd4d42fe29597807a1614ee"},
 ]
 
 [[package]]
@@ -2903,6 +2939,17 @@ dependencies = [
 files = [
     {file = "python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3"},
     {file = "python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427"},
+]
+
+[[package]]
+name = "python-dotenv"
+version = "1.1.1"
+requires_python = ">=3.9"
+summary = "Read key-value pairs from a .env file and set them as environment variables"
+groups = ["test"]
+files = [
+    {file = "python_dotenv-1.1.1-py3-none-any.whl", hash = "sha256:31f23644fe2602f88ff55e1f5c79ba497e01224ee7737937930c448e4d0e24dc"},
+    {file = "python_dotenv-1.1.1.tar.gz", hash = "sha256:a8a6399716257f45be6a007360200409fce5cda2661e3dec71d23dc15f6189ab"},
 ]
 
 [[package]]
@@ -3813,7 +3860,7 @@ name = "typing-inspection"
 version = "0.4.1"
 requires_python = ">=3.9"
 summary = "Runtime typing introspection tools"
-groups = ["lerobot"]
+groups = ["lerobot", "test"]
 dependencies = [
     "typing-extensions>=4.12.0",
 ]

@@ -54,13 +54,14 @@ class LeRobotVideoDataset(LeRobotDataset, BaseVideoDataset):
 
         """
         item = {}
+
         for vid_key, query_ts in query_timestamps.items():
             try:
                 video_path = self.root / self.meta.get_video_file_path(ep_idx, vid_key)
                 video_meta = self.meta.info["features"][vid_key]
                 resolution, codec = (
                     video_meta["shape"],
-                    video_meta["info"]["video.codec"],
+                    self._get_codec(video_meta),
                 )
                 decoder_key = f"{resolution}_{codec}"
                 decoder = self.get_decoder(decoder_key, codec)
@@ -116,3 +117,17 @@ class LeRobotVideoDataset(LeRobotDataset, BaseVideoDataset):
             "Expected (C, H, W) or (H, W, C) with 3 channels."
         )
         raise ValueError(msg)
+
+    def _get_codec(self, video_meta: dict) -> str:
+        """Helper method to return the codec based on the video meta info"""
+        possible_keys = ["info", "video_info"]
+
+        for key in possible_keys:
+            if key in video_meta:
+                return video_meta[key]["video.codec"]
+
+        msg = (
+            f"Codec not found. Expected one of {possible_keys} in video_meta, "
+            f"check info.json in your dataset for details"
+        )
+        raise KeyError(msg)

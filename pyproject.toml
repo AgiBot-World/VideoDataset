@@ -44,6 +44,9 @@ dev = [
   "sphinx-autobuild>=2024.10.3",
 ]
 test = [
+  "opencv-python>=4.5.5.64",
+  "pydantic>=2.11.7",
+  "pydantic-settings>=2.10.1",
   "pytest>=6",
   "pytest-benchmark[histogram]",
   "pytest-cov>=3",
@@ -121,7 +124,7 @@ lint.ignore = [
 lint.per-file-ignores."src/videodataset/_decoder.pyi" = [ "F821" ]
 # Uncomment if using a _compat.typing backport
 # typing-modules = ["videodataset._compat.typing"]
-lint.per-file-ignores."tests/**" = [ "T20" ]
+lint.per-file-ignores."tests/**" = [ "ARG001", "T20" ]
 lint.isort.required-imports = [ "from __future__ import annotations" ]
 
 [tool.codespell]

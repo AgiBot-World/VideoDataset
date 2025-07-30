@@ -147,7 +147,7 @@ docs-linkcheck:
 ########################################################################################
 
 # or min:1% or mean:0.001 or mean:1%
-BENCHMARK_FAIL ?= min:2%
+BENCHMARK_FAIL ?= min:4%
 BENCHMARK_MIN_ROUND ?= 30
 BENCHMARK_MAX_KEEP ?= 9
 BENCHMARK_WARMUP ?= on

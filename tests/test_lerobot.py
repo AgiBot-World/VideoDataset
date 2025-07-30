@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import random
+
 import numpy as np
 import pytest
 
@@ -9,38 +11,46 @@ except ImportError:
     pytestmark = pytest.mark.skip("lerobot not installed, skipping test")
 
 
-from videodataset.dataset.lerobot_dataset import LeRobotVideoDataset
+@pytest.mark.parametrize(
+    ("video_dataset", "lerobot_dataset"),
+    [("ucsd_kitchen_video_dataset", "ucsd_kitchen_dataset")],
+)
+def test_lerobot(video_dataset, lerobot_dataset, request):
+    video_dataset = request.getfixturevalue(video_dataset)
+    lerobot_dataset = request.getfixturevalue(lerobot_dataset)
 
+    assert len(video_dataset) == len(lerobot_dataset)
 
-def test_lerobot(lerobot_svla_so100_stacking_path):
-    vt_dataset = LeRobotVideoDataset(
-        repo_id=None,
-        root=lerobot_svla_so100_stacking_path,
-    )
-    lr_dataset = LeRobotDataset(
-        repo_id=None,
-        root=lerobot_svla_so100_stacking_path,
-    )
-    for i in range(10):
-        sample_vt = vt_dataset[i]
-        sample_lr = lr_dataset[i]
+    test_indices = random.sample(range(len(video_dataset)), 10)
+    for i in test_indices:
+        sample_vt = video_dataset[i]
+        sample_lr = lerobot_dataset[i]
         for vt_key, vt_value in sample_vt.items():
             lr_value = sample_lr[vt_key]
             if isinstance(vt_value, str):
                 assert vt_value == lr_value
             else:
-                np.allclose(vt_value.cpu().numpy(), lr_value.cpu().numpy(), atol=1e-3)
+                vt_tensor, lr_tensor = vt_value.cpu().numpy(), lr_value.cpu().numpy()
+
+                assert np.allclose(
+                    vt_tensor.mean(),
+                    lr_tensor.mean(),
+                    atol=5e-2,
+                )
+
+                assert np.allclose(
+                    vt_tensor.std(),
+                    lr_tensor.std(),
+                    atol=5e-2,
+                )
 
 
 @pytest.mark.benchmark(group="lerobot_videodataset_loading")
-def test_lerobot_benchmark(benchmark, lerobot_svla_so100_stacking_path):
-    vt_dataset = LeRobotVideoDataset(
-        repo_id=None,
-        root=lerobot_svla_so100_stacking_path,
-    )
+def test_lerobot_benchmark(benchmark, ucsd_kitchen_video_dataset):
+    vt_dataset = ucsd_kitchen_video_dataset
 
     def iter():
-        yield from enumerate(vt_dataset)
+        yield from vt_dataset
 
     benchmark.pedantic(
         lambda: next(iter()),
