@@ -8,7 +8,6 @@ ci:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   script:
-    - conan remote login ${DEV_ARTIFACTORY} ${ARTIFACTORY_USER} -p ${ARTIFACTORY_PASSWORD}
     - make dev-test,lerobot pre-commit test build
     - |
       status=0

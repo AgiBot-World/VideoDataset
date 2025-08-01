@@ -14,6 +14,32 @@ include(${CMAKE_CURRENT_LIST_DIR}/build/Default.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/test/Default.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/install/Default.cmake)
 
+
+function(sync_conan_hooks)
+  # Install Conan hooks to the user home directory
+  set(HOME_DIR "")
+  if(WIN32)
+    get_filename_component(HOME_DIR "$ENV{HOMEDRIVE}$ENV{HOMEPATH}" ABSOLUTE)
+  else()
+    get_filename_component(HOME_DIR "$ENV{HOME}" ABSOLUTE)
+  endif()
+
+  execute_process(
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${HOME_DIR}/.conan2/extensions/hooks
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_LIST_DIR}/hooks/hook_rewrite_url.py ${HOME_DIR}/.conan2/extensions/hooks/
+    RESULT_VARIABLE return_code
+    OUTPUT_VARIABLE output
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+  )
+
+  if(NOT "${return_code}" STREQUAL "0")
+    message(WARNING "CMake-Conan: Failed to install Conan hooks. Please run 'conan install' with the same user that runs CMake. ${output}")
+  endif()
+endfunction()
+
+sync_conan_hooks()
+
 add_debug_macro()
 
 create_uninstall_target()
@@ -43,15 +69,15 @@ include(${CMAKE_CURRENT_LIST_DIR}/build/Hardening.cmake)
 # Show information about the current project
 cmake_language(DEFER DIRECTORY ${CMAKE_SOURCE_DIR} CALL show_project_version)
 cmake_language(DEFER DIRECTORY ${CMAKE_SOURCE_DIR} CALL
-               show_vcpkg_configuration)
+  show_vcpkg_configuration)
 cmake_language(DEFER DIRECTORY ${CMAKE_SOURCE_DIR} CALL show_installation)
 
 # Cpack
 set(__cpack_cmake_module
-    ${CMAKE_CURRENT_LIST_DIR}/install/Cpack.cmake
-    CACHE
-      INTERNAL
-      "Cpack module path to be included when directory CMAKE_SOURCE_DIR ends"
-      FORCE)
+  ${CMAKE_CURRENT_LIST_DIR}/install/Cpack.cmake
+  CACHE
+  INTERNAL
+  "Cpack module path to be included when directory CMAKE_SOURCE_DIR ends"
+  FORCE)
 cmake_language(DEFER DIRECTORY ${CMAKE_SOURCE_DIR} CALL include
-               ${__cpack_cmake_module})
+  ${__cpack_cmake_module})
