@@ -52,12 +52,10 @@ if(PYBIND11_STUBGEN)
     COMMAND
       ${CMAKE_COMMAND} -E env
       "PYTHONPATH=$<TARGET_FILE_DIR:${target_name}>:$ENV{PYTHONPATH}"
-      ${PYBIND11_STUBGEN} -o "$<TARGET_FILE_DIR:${target_name}>"
+      ${PYBIND11_STUBGEN} -o "${CMAKE_SOURCE_DIR}/src/videodataset"
       --ignore-all-errors ${target_name}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generating .pyi stubs for _decoder")
-  install(FILES $<TARGET_FILE_DIR:${target_name}>/${target_name}.pyi
-          DESTINATION ${CMAKE_PROJECT_NAME})
 endif()
 
 install(TARGETS ${target_name} DESTINATION ${CMAKE_PROJECT_NAME})
