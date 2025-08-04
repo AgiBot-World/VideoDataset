@@ -10,6 +10,11 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(FFMPEG REQUIRED libavformat libavcodec libavutil
                   libswresample)
 
+find_library(LIBNVCUVID NAMES libnvcuvid.so libnvcuvid.so.1)
+if(NOT LIBNVCUVID)
+  message(FATAL_ERROR "libnvcuvid not found")
+endif()
+
 set(target_name _decoder)
 set(target_name_internal ${target_name}_internal)
 
@@ -33,7 +38,7 @@ target_include_interface_directories(
 
 target_link_libraries(
   ${target_name_internal}
-  PUBLIC nvcuvid cuda ${FFMPEG_LIBRARIES} dlpack::dlpack Python::Python
+  PUBLIC ${LIBNVCUVID} cuda ${FFMPEG_LIBRARIES} dlpack::dlpack Python::Python
          pybind11::headers)
 
 pybind11_add_module(${target_name} MODULE pybind/bind.cpp)
