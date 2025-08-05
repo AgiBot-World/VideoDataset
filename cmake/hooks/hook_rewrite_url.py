@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import os
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit
 
-import conan.tools.files
-from conan.tools.files import download, get
+from conan import ConanFile
 
 GITHUB_PROXY = os.environ.get("GITHUB_PROXY", "")
 
@@ -25,76 +24,26 @@ def rewrite(url):
             raise RuntimeError(err_msg)
 
         # Prepend the proxy server to the front of the URL.
-        parts.insert(0, GITHUB_PROXY)
-
-    return urlunsplit(parts)
-
-
-def custom_get(
-    conanfile,
-    url,
-    md5=None,
-    sha1=None,
-    sha256=None,
-    destination=".",
-    filename="",
-    keep_permissions=False,
-    pattern=None,
-    verify=True,
-    retry=None,
-    retry_wait=None,
-    auth=None,
-    headers=None,
-    strip_root=False,
-):
-    get(
-        conanfile,
-        rewrite(url),
-        md5,
-        sha1,
-        sha256,
-        destination,
-        filename,
-        keep_permissions,
-        pattern,
-        verify,
-        retry,
-        retry_wait,
-        auth,
-        headers,
-        strip_root,
-    )
+        return f"{GITHUB_PROXY.rstrip('/')}/{url}"
+    return url
 
 
-def custom_download(
-    conanfile,
-    url,
-    filename,
-    verify=True,
-    retry=None,
-    retry_wait=None,
-    auth=None,
-    headers=None,
-    md5=None,
-    sha1=None,
-    sha256=None,
-):
-    download(
-        conanfile,
-        rewrite(url),
-        filename,
-        verify,
-        retry,
-        retry_wait,
-        auth,
-        headers,
-        md5,
-        sha1,
-        sha256,
-    )
+def pre_source(conanfile: ConanFile):
+    """
+    Rewrite the URL of the source before to execute the source() method.
 
+    Reference: https://docs.conan.io/2/reference/extensions/hooks.html
+    """
+    try:
+        sources = conanfile.conan_data.get("sources", {})
+        version_sources = sources.get(conanfile.version, {})
+        url = version_sources.get("url")
 
-if conan.tools.files.get is not custom_get:
-    conan.tools.files.get = custom_get
-if conan.tools.files.download is not custom_download:
-    conan.tools.files.download = custom_download
+        if url:
+            conanfile.output.info(f"Patch the URL before source() method: {url}.")
+            new_url = rewrite(url)
+            conanfile.output.info(f"Rewritten URL: {new_url}")
+            conanfile.conan_data["sources"][conanfile.version]["url"] = new_url
+    except Exception as e:
+        err_msg = f"An error occurred while patching the URL: {e}"
+        conanfile.output.warning(err_msg)

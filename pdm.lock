@@ -5,7 +5,7 @@
 groups = ["default", "lerobot"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:548fcb5ff8096b5c16d3831592463b72dabab8876817bc6425a31c144bc4d120"
+content_hash = "sha256:9fcc3a01428d0ea20ccda3be93be6899730a19a9dd0489c945d23a891455ca9b"
 
 [[metadata.targets]]
 requires_python = ">=3.10"

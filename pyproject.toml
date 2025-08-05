@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "scikit_build_core.build"
-requires = [ "conan~=2.17.0", "pybind11-stubgen", "scikit-build-core" ]
+requires = [ "conan", "pybind11-stubgen", "scikit-build-core" ]
 
 [project]
 name = "videodataset"
@@ -29,8 +29,8 @@ dependencies = [
   "numpy",
   "pillow>=10.4",
   "scipy",
-  "torch>=2.5",
-  "torchvision>=0.20",
+  "torch",
+  "torchvision",
 ]
 optional-dependencies.lerobot = [
   "lerobot @ git+https://github.com/huggingface/lerobot.git@dfb1571b",
