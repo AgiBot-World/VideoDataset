@@ -5,7 +5,7 @@
 groups = ["dev", "docs", "lerobot", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:9fcc3a01428d0ea20ccda3be93be6899730a19a9dd0489c945d23a891455ca9b"
+content_hash = "sha256:ae386d3b6f04c3609200deb6d9fa54db5401fcfa30983e3fce430d35e5fac5b5"
 
 [[metadata.targets]]
 requires_python = ">=3.10"
@@ -3375,7 +3375,7 @@ files = [
 [[package]]
 name = "six"
 version = "1.17.0"
-requires_python = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
+requires_python = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
 summary = "Python 2 and 3 compatibility utilities"
 groups = ["lerobot"]
 files = [

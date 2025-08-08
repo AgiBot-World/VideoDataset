@@ -27,10 +27,7 @@ classifiers = [
 dynamic = [ "version" ]
 dependencies = [
   "numpy",
-  "pillow>=10.4",
-  "scipy",
   "torch",
-  "torchvision",
 ]
 optional-dependencies.lerobot = [
   "lerobot @ git+https://github.com/huggingface/lerobot.git@dfb1571b",
