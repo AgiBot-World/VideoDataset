@@ -2,30 +2,29 @@
 ########################################################################################
 # Variables
 ########################################################################################
-DIST_DIR = dist
+
 # Documentation target directory, will be adapted to specific folder for readthedocs.
 PUBLIC_DIR := $(shell [ "$$READTHEDOCS" = "True" ] && echo "$${READTHEDOCS_OUTPUT}html" || echo "public")
+# Use pipenv when not in CI environment and pipenv command exists.
+PIPRUN := $(shell command -v pipenv > /dev/null 2>&1 && echo pipenv run)
 
-# Determine the Python version used by pipx.
-PIPX_PYTHON_VERSION := $(shell `pipx environment --value PIPX_DEFAULT_PYTHON` -c "from sys import version_info; print(f'{version_info.major}.{version_info.minor}')")
 
 ########################################################################################
 # Development Environment Management
 ########################################################################################
+
+# Remove common intermediate files.
 clean:
 	-rm -rf \
 		$(PUBLIC_DIR) \
 		.coverage \
 		.mypy_cache \
-		.pdm-build \
-		.pdm-python \
 		.pytest_cache \
 		.ruff_cache \
-		Pipfile* \
 		__pypackages__ \
+		Pipfile \
 		build \
 		coverage.xml \
-		_skbuild \
 		dist
 	find . -name '*.egg-info' -print0 | xargs -0 rm -rf
 	find . -name '*.pyc' -print0 | xargs -0 rm -f
@@ -36,36 +35,37 @@ clean:
 # Remove pre-commit hook, virtual environment alongside intermediate files.
 deepclean: clean
 	if command -v pre-commit > /dev/null 2>&1; then pre-commit uninstall; fi
-	if command -v pdm >/dev/null 2>&1 && pdm venv list | grep -q in-project ; then pdm venv remove --yes in-project >/dev/null 2>&1; fi
+	if command -v pipenv --venv >/dev/null 2>&1 ; then PIPENV_IGNORE_VIRTUALENVS=1 pipenv --rm; fi
+
+# Prepare virtualenv
+venv:
+	@pipenv --site-packages
+	@pipenv run pip install --upgrade pip
 
 # Install the package in editable mode with specific optional dependencies.
-install-%:
-	pdm install --prod --group $*
+install-%: venv
+	${PIPRUN} pip install -e .[$*]
 
 # Install the package in editable mode with all optional dependencies.
-install:
-	pdm install --prod
+install: venv
+	${PIPRUN} pip install -e .
 
-# Install the package in editable mode with specific optional dependencies.
-dev-%: install
-	pdm install --lockfile pdm.dev.lock --no-default --dev --group $*
+# Install the package in editable mode with all optional dependencies and pre-commit hook
+dev-%: venv
+	${PIPRUN} pip install -e .[lerobot] --group $*
 
 # Prepare the development environment.
-# Install the package in editable mode with all optional dependencies and pre-commit hook.
-dev: install
-	pdm install --lockfile pdm.dev.lock --no-default --dev
+# Install the package in editable mode with all optional dependencies and test group
+# Install pre-commit hook
+dev: venv
+	${PIPRUN} pip install -e .[lerobot] --group test
 	if [ "$(CI)" != "true" ] && command -v pre-commit > /dev/null 2>&1; then pre-commit install; fi
-
-# Lock both prod and dev dependencies.
-lock:
-	pdm lock --prod --group lerobot --update-reuse-installed
-	pdm lock --lockfile pdm.dev.lock --no-default --dev --group lerobot --update-reuse-installed
 
 # Install standalone tools
 prerequisites:
 	pipx list | grep -q "package check-jsonschema 0.33.0" || pipx install --force check-jsonschema==0.33.0
 	pipx list | grep -q "package codespell 2.4.1" || pipx install --force codespell[toml]==2.4.1
-	pipx list | grep -q "package pdm 2.25.2" || pipx install --force pdm==2.25.2
+	pipx list | grep -q "pipenv 2025.0.4" || pipx install --force pipenv==2025.0.4
 	pipx list | grep -q "package pre-commit 4.2.0" || pipx install --force pre-commit==4.2.0
 	pipx list | grep -q "package pyproject-fmt 2.5.1" || pipx install --force pyproject-fmt==2.5.1
 	pipx list | grep -q "package ruff 0.11.6" || pipx install --force ruff==0.11.6
@@ -98,9 +98,14 @@ pre-commit:
 ########################################################################################
 
 # Clean and run test with coverage.
-test:
-	pdm run coverage erase
-	pdm run coverage run -m pytest
+test-run:
+	${PIPRUN} python -m coverage erase
+	${PIPRUN} python -m coverage run -m pytest
+
+# Generate coverage report for terminal and xml.
+test: test-run
+	${PIPRUN} python -m coverage report
+	${PIPRUN} python -m coverage xml
 
 ########################################################################################
 # Package
@@ -108,18 +113,18 @@ test:
 
 # Build the package.
 build:
-	pdm build --no-sdist
+	python -m build -w $(if $(CI),-v)
 
 # Publish the package.
 publish:
-	twine upload $(if $(CI),--verbose) --skip-existing ./${DIST_DIR}/*
+	twine upload $(if $(CI),--verbose) --skip-existing ./dist/*
 
 ########################################################################################
 # docs
 ########################################################################################
 
-SPHINX_BUILD = pdm run sphinx-build
-SPHINX_AUTOBUILD = pdm run sphinx-autobuild
+SPHINX_BUILD = ${PIPRUN} sphinx-build
+SPHINX_AUTOBUILD = ${PIPRUN} sphinx-autobuild
 SOURCEDIR = docs
 BUILDDIR = docs/_build/html
 SPHINX_OPTS = -T -c $(SOURCEDIR) $(SOURCEDIR) $(BUILDDIR)
@@ -127,13 +132,12 @@ KEEP_GOING = --keep-going
 NITPICKY = -n
 LINKCHECK = -b linkcheck
 
-docs-prepare: dev-docs
+docs-prepare: install-docs
 
 docs-generate:
 	$(SPHINX_BUILD) $(KEEP_GOING) $(SPHINX_OPTS) $(POSARGS)
 
 docs-serve:
-	pdm install --lockfile pdm.dev.lock --no-default --dev -G dev
 	$(SPHINX_AUTOBUILD) $(SPHINX_OPTS) $(POSARGS)
 
 docs-check:
@@ -154,7 +158,7 @@ BENCHMARK_WARMUP ?= on
 BENCHMARK_WARMUP_ITERATIONS ?= 4
 
 benchmark:
-	pdm run pytest --benchmark-only --benchmark-autosave --benchmark-sort=name \
+	${PIPRUN} python -m pytest --benchmark-only --benchmark-autosave --benchmark-sort=name \
 	--benchmark-cprofile=function_name \
 	--benchmark-cprofile-top=10 \
 	--benchmark-min-rounds=$(BENCHMARK_MIN_ROUND) -W ignore \
@@ -164,7 +168,7 @@ benchmark:
 		--benchmark-compare-fail="$(BENCHMARK_FAIL)" --benchmark-compare,)
 
 benchmark-histogram:
-	pdm run pytest-benchmark compare --sort=name --histogram=.benchmarks/histogram
+	${PIPRUN} pytest-benchmark compare --sort=name --histogram=.benchmarks/histogram
 
 benchmark-clean:
 	find .benchmarks/ -name *.json | tail -n 1 | xargs rm

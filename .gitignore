@@ -214,3 +214,6 @@ __marimo__/
 
 # _decoder.pyi
 _decoder.pyi
+
+# Pipenv
+Pipfile

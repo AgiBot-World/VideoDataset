@@ -8,10 +8,7 @@ default:
   retry:
     max: 2
     when: runner_system_failure
-  image: ${CI_REGISTRY_IMAGE}/agibot-forge/dev:latest
-variables:
-  DEV_ARTIFACTORY: artifactory_genie
-  ARTIFACTORY_USER: gabriel
+  image: ${CI_REGISTRY_IMAGE}/agibot-forge/dev:25.04-latest
 
 include:
   - local: .gitlab/workflows/**.yml

@@ -26,40 +26,35 @@ classifiers = [
 ]
 dynamic = [ "version" ]
 dependencies = [
-  "numpy",
-  "torch",
+  "numpy<2",
+  "torch>=2.5.0a0",
 ]
 optional-dependencies.lerobot = [
-  "lerobot @ git+https://github.com/huggingface/lerobot.git@dfb1571b",
+  "lerobot>=0.3.3",
 ]
 urls.changelog = "https://code.agibot.com/ai-platform/videodataset/-/releases"
 urls.issue = "https://code.agibot.com/ai-platform/videodataset/-/issues"
 urls.repository = "https://code.agibot.com/ai-platform/videodataset"
 
 [dependency-groups]
-dev = [
-  "sphinx-autobuild>=2024.10.3",
-]
 test = [
+  "coverage>=7.6.10",
   "opencv-python>=4.5.5.64",
-  "pydantic>=2.11.7",
-  "pydantic-settings>=2.10.1",
+  "pydantic>=2.9",
+  "pydantic-settings>=2",
   "pytest>=6",
-  "pytest-benchmark[histogram]",
-  "pytest-cov>=3",
+  "pytest-benchmark[histogram]>=5.1",
+  "pytest-cov>=6.1",
   "scikit-image>=0.25.2",
 ]
 docs = [
   "furo>=2023.8.17",
   "myst-parser>=0.13",
   "sphinx>=7",
+  "sphinx-autobuild>=2024.10.3",
   "sphinx-autodoc-typehints",
   "sphinx-copybutton",
 ]
-
-[tool.pdm]
-distribution = true
-use_venv = false
 
 [tool.setuptools_scm]
 fallback_version = "0.0.0"
