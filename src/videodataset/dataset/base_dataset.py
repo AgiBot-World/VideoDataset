@@ -15,6 +15,10 @@ class BaseVideoDataset:
     """Decoder extension that defines decoder specific functionalities"""
 
     def __init__(self) -> None:
+        """Initialize the BaseVideoDataset with a dictionary to hold decoders
+        and set the device_id to the current CUDA device if available.
+        Raises a RuntimeError if no CUDA device is found.
+        """
         self.decoders: dict[str, VideoDecoder] = {}
 
         if torch.cuda.is_available():
@@ -25,13 +29,18 @@ class BaseVideoDataset:
 
     @property
     def device(self) -> int:
+        """Return the device ID where decoders are running."""
         return self.device_id
 
     @property
     def num_decoders(self) -> int:
+        """Return the number of decoders currently managed by the dataset."""
         return len(self.decoders)
 
     def get_decoder(self, decoder_key: str, codec: str) -> VideoDecoder:
+        """Retrieve a VideoDecoder for a specific key and codec. If the decoder
+        does not exist, it creates a new one and logs the creation.
+        """
         if decoder_key not in self.decoders:
             self.decoders[decoder_key] = VideoDecoder(self.device_id, codec)
             logger.debug(
@@ -49,6 +58,10 @@ class BaseVideoDataset:
         frame_idx: int,
         to_cpu: bool = False,
     ) -> torch.Tensor:
+        """Decode a specific frame from a video file using the provided decoder.
+        Converts the decoded frame from NV12 format to RGB and optionally moves
+        the tensor to the CPU.
+        """
         decoded_frame = decoder.decode(str(video_path), frame_idx)
         (height, width) = decoded_frame.shape
         src_tensor = torch.from_dlpack(decoded_frame)
