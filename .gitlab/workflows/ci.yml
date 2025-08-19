@@ -1,7 +1,6 @@
 ci:
   cache:
     paths:
-      - .venv
       - .benchmarks
   interruptible: true
   rules:
@@ -18,12 +17,11 @@ ci:
       make benchmark-keep
       exit $status
   tags:
-    - genie-gpu-4090-25.04
+    - genie-gpu-4090-k8s
   stage: ci
 benchmark-reset:
   cache:
     paths:
-      - .venv
       - .benchmarks
   when: manual
   interruptible: true
@@ -33,5 +31,5 @@ benchmark-reset:
   script:
     - rm .benchmarks -rf
   tags:
-    - genie-gpu-4090-25.04
+    - genie-gpu-4090-k8s
   stage: ci
