@@ -1,7 +1,14 @@
 ci:
   cache:
-    paths:
-      - .benchmarks
+    - key: benchmarks
+      paths:
+        - .benchmarks
+    - key: pre-commit
+      paths:
+        - $PRE_COMMIT_HOME
+    - key: build
+      paths:
+        - $HOME/.conan2
   interruptible: true
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
@@ -19,10 +26,13 @@ ci:
   tags:
     - genie-gpu-4090-k8s
   stage: ci
+  variables:
+    PRE_COMMIT_HOME: $CI_PROJECT_DIR/.cache/.pre-commit
 benchmark-reset:
   cache:
-    paths:
-      - .benchmarks
+    - key: benchmarks
+      paths:
+        - .benchmarks
   when: manual
   interruptible: true
   rules:
