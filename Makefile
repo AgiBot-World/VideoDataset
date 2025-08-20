@@ -123,7 +123,7 @@ publish:
 # docs
 ########################################################################################
 
-SPHINX_BUILD = ${PIPRUN} sphinx-build
+SPHINX_BUILD = ${PIPRUN} python -m sphinx
 SPHINX_AUTOBUILD = ${PIPRUN} sphinx-autobuild
 SOURCEDIR = docs
 BUILDDIR = docs/_build/html
