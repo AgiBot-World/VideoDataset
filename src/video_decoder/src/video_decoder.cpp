@@ -41,7 +41,7 @@ VideoDecoder::VideoDecoder(int gpuId, const std::string& codec)
     cuCtxSetCurrent(cu_ctx);
 
     // Parse codec type
-    if (codec == "h265") {
+    if (codec == "hevc" || codec == "h265") {
         codec_type = AV_CODEC_ID_HEVC;
     }
     else if (codec == "h264") {
