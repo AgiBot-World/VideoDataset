@@ -79,11 +79,14 @@ def ucsd_kitchen_dataset(lerobot_check) -> LeRobotDataset:
             repo_id=None,
             root=dataset_settings.lerobot_datasets_root_paths["ucsd_kitchen_dataset"],
         )
-    else:
+    elif dataset_settings.use_repo_id:
         dataset = LeRobotDataset(
             repo_id=dataset_settings.lerobot_datasets_repo_ids["ucsd_kitchen_dataset"],
             root=None,
         )
+    else:
+        pytest.skip("No available dataset in settings")
+
     return dataset
 
 
@@ -95,11 +98,14 @@ def ucsd_kitchen_video_dataset(lerobot_check) -> LeRobotVideoDataset:
             repo_id=None,
             root=dataset_settings.lerobot_datasets_root_paths["ucsd_kitchen_dataset"],
         )
-    else:
+    elif dataset_settings.use_repo_id:
         dataset = LeRobotVideoDataset(
             repo_id=dataset_settings.lerobot_datasets_repo_ids["ucsd_kitchen_dataset"],
             root=None,
         )
+    else:
+        pytest.skip("No available dataset in settings")
+
     return dataset
 
 

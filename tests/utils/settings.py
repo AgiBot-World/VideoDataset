@@ -16,6 +16,7 @@ class TestDatasetSettings(BaseSettings):
     """Settings class for datasets used in setting"""
 
     use_local_path: bool = True
+    use_repo_id: bool = True
     # TODO: adjust path and repo id in public ci runner environment
     # Used for fetching from hugggingface hub
     lerobot_datasets_repo_ids: dict[str, str] = {
@@ -39,11 +40,17 @@ class TestDatasetSettings(BaseSettings):
                 self.use_local_path = False
                 break
 
-        # If local path does not work, fallback to fetching from huggingface
-        if not self.use_local_path:
-            for _, repo_id in (self.lerobot_datasets_repo_ids).items():
-                self.ping_huggingface_repo(repo_id)
-            # If check failed for both local and remote paths, tests will not proceed
+        try:
+            # If local path does not work, fallback to fetching from huggingface
+            if not self.use_local_path:
+                for _, repo_id in (self.lerobot_datasets_repo_ids).items():
+                    self.ping_huggingface_repo(repo_id)
+                # If check failed for both local and remote paths, tests will not proceed
+        except urllib.error.URLError:
+            self.use_repo_id = False
+            msg = "Validation failed for remote repo. Tests will be skipped."
+            logger.warning(msg)
+
         return self
 
     def ping_huggingface_repo(self, repo_id: str, timeout: int = 5):

@@ -171,7 +171,7 @@ benchmark-histogram:
 	${PIPRUN} pytest-benchmark compare --sort=name --histogram=.benchmarks/histogram
 
 benchmark-clean:
-	find .benchmarks/ -name *.json | tail -n 1 | xargs rm
+	find .benchmarks/ -name *.json | sort -n | tail -n 1 | xargs rm
 
 benchmark-keep:
 	find .benchmarks/ -name *.json | sort -n | head -n -$(BENCHMARK_MAX_KEEP) | xargs -r rm
