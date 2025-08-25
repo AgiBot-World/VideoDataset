@@ -17,61 +17,14 @@ Video Dataset with NvCodec.
 
 VideoDataset is a high-performance video decoding multi-framework supporting library. It aims to provide framework-integrated solutions for working with video decoding tasks. Now it supports the following frameworks:
 
+- Mixin class for torch.utils.data.Dataset.
 - LeRobot Dataset.
-- ...
 
 Key Features:
 
 - GPU-accelerated video decoding using NvCodec library
 - Support for common video formats (H.264, H.265, etc.)
 - Easy integration with multi-frameworks and multi-formats.
-
-## Installation
-
-### Building from Source
-
-Prerequisites:
-
-- NVIDIA GPU with CUDA support and CUDA Toolkit installed
-- FFmpeg libraries
-
-```bash
-git clone https://code.agibot.com/ai-platform/videodataset.git
-make build
-```
-
-> Note: If there is no available network to access to github, please add a proxy mirror to the environment variable `GITHUB_PROXY`.
-
-## Quick Start
-
-Quick start with LeRobot Dataset with the installation of `pip install videodataset[lerobot]` and the following code:
-
-```python
-from videodataset.dataset.lerobot_dataset import LeRobotVideoDataset
-import torch
-
-lerobot_svla_so100_stacking_path = "/path/to/lerobot_svla_so100_stacking"
-
-vt_dataset = LeRobotVideoDataset(
-    repo_id=None,
-    root=lerobot_svla_so100_stacking_path,
-)
-
-# Create a DataLoader
-dataloader = torch.utils.data.DataLoader(
-    vt_dataset,
-    batch_size=4,
-    shuffle=True,
-    num_workers=0,
-)
-
-# Iterate over the DataLoader
-for i, batch in enumerate(dataloader):
-    # Do something with the batch
-    # ...
-```
-
-More examples can be found in the [tests](https://code.agibot.com/ai-platform/videodataset/-/tree/main/tests) directory.
 
 ## Documentation
 

@@ -15,6 +15,9 @@
 :glob:
 
 Overview <self>
+quickstart
+limitation
+benchmark
 ```
 
 <!-- Disable to show when there is no api generation in the docs -->
