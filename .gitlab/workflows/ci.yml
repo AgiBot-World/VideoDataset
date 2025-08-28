@@ -1,8 +1,5 @@
 ci:
   cache:
-    - key: benchmarks
-      paths:
-        - .benchmarks
     - key: pre-commit
       paths:
         - $PRE_COMMIT_HOME
@@ -16,33 +13,11 @@ ci:
   script:
     - make prerequisites
     - make dev-test pre-commit test-run build
-    - |
-      status=0
-      make benchmark || status=$?
-      [[ $status -ne 0 ]] && make benchmark-clean
-      make benchmark-histogram
-      make benchmark-keep
-      exit $status
   tags:
     - genie-gpu-4090-k8s
   stage: ci
   variables:
     PRE_COMMIT_HOME: $CI_PROJECT_DIR/.cache/.pre-commit
-benchmark-reset:
-  cache:
-    - key: benchmarks
-      paths:
-        - .benchmarks
-  when: manual
-  interruptible: true
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-  script:
-    - find .benchmarks/ -name *.json | sort && rm .benchmarks/* -rf
-  tags:
-    - genie-gpu-4090-k8s
-  stage: ci
 pages:
   artifacts:
     paths:

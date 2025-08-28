@@ -43,17 +43,3 @@ def test_lerobot(video_dataset, lerobot_dataset, request):
                     lr_tensor.std(),
                     atol=5e-2,
                 )
-
-
-@pytest.mark.benchmark(group="lerobot_videodataset_loading")
-def test_lerobot_benchmark(benchmark, ucsd_kitchen_video_dataset):
-    vt_dataset = ucsd_kitchen_video_dataset
-
-    def iter():
-        yield from vt_dataset
-
-    benchmark.pedantic(
-        lambda: next(iter()),
-        iterations=4,
-        rounds=100,
-    )

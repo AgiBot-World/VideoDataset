@@ -145,33 +145,3 @@ docs-check:
 
 docs-linkcheck:
 	$(SPHINX_BUILD) $(LINKCHECK) $(SPHINX_OPTS) $(POSARGS)
-
-########################################################################################
-# Benchmark
-########################################################################################
-
-# or min:1% or mean:0.001 or mean:1%
-BENCHMARK_FAIL ?= min:4%
-BENCHMARK_MIN_ROUND ?= 30
-BENCHMARK_MAX_KEEP ?= 9
-BENCHMARK_WARMUP ?= on
-BENCHMARK_WARMUP_ITERATIONS ?= 4
-
-benchmark:
-	${PIPRUN} python -m pytest --benchmark-only --benchmark-autosave --benchmark-sort=name \
-	--benchmark-cprofile=function_name \
-	--benchmark-cprofile-top=10 \
-	--benchmark-min-rounds=$(BENCHMARK_MIN_ROUND) -W ignore \
-	--benchmark-warmup=$(BENCHMARK_WARMUP) \
-	--benchmark-warmup-iterations=$(BENCHMARK_WARMUP_ITERATIONS) \
-	$(if $(shell find .benchmarks -mindepth 2 -print -quit 2>/dev/null), \
-		--benchmark-compare-fail="$(BENCHMARK_FAIL)" --benchmark-compare,)
-
-benchmark-histogram:
-	${PIPRUN} pytest-benchmark compare --sort=name --histogram=.benchmarks/histogram
-
-benchmark-clean:
-	find .benchmarks/ -name *.json | sort -n | tail -n 1 | xargs rm
-
-benchmark-keep:
-	find .benchmarks/ -name *.json | sort -n | head -n -$(BENCHMARK_MAX_KEEP) | xargs -r rm

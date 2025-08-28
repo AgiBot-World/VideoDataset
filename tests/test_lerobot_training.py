@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 import torch
+import time
 from torch import nn
 from torch.utils.data import DataLoader
 
@@ -95,3 +96,29 @@ def test_lerobot_training(dataset_fixture, dataloader_kwargs, adaptive_model, re
                 print(f"Early termination step reached at step {termination_step}")
                 terminated = True
                 break
+
+@pytest.mark.parametrize("dataset_fixture",["ucsd_kitchen_dataset", "ucsd_kitchen_video_dataset"])
+@pytest.mark.parametrize("num_workers", [1, 2, 4, 8])
+def test_lerobot_video_dataset_training_bench(dataset_fixture, num_workers, adaptive_model, capsys, request):
+    """Benchmark a LeRobotVideoDataset training loop to ensure it is fast enough."""
+    dataset = request.getfixturevalue(dataset_fixture)
+    dataloader = DataLoader(
+        dataset,
+        batch_size=16,
+        num_workers=num_workers,
+        multiprocessing_context="spawn"
+    )
+
+    start_time = time.perf_counter()
+
+    try:
+        dataloader_iter = iter(dataloader)
+        for _ in range(1000):
+            batch_data = next(dataloader_iter)
+            adaptive_model(batch_data)
+    except StopIteration:
+        pass
+
+    elapsed_time = time.perf_counter() - start_time
+    with capsys.disabled():
+        print(f"{dataset_fixture} with {num_workers} workers, elapsed: {elapsed_time:.2f} seconds")

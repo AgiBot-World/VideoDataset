@@ -131,7 +131,6 @@ addopts = [
   "--showlocals",
   "--strict-markers",
   "--strict-config",
-  "--benchmark-skip",
 ]
 xfail_strict = true
 filterwarnings = [ "error" ]

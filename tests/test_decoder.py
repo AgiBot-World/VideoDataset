@@ -73,14 +73,3 @@ def test_decode_validation_with_frames(test_video):
         rgb_tensor = nv12_to_rgb(frame_tensor, width, int(height / 1.5))
         frame_rgb_np = rgb_tensor.cpu().numpy()
         assert np.allclose(read_frames[i], frame_rgb_np, atol=3)
-
-
-@pytest.mark.benchmark(group="video_decoder_decode")
-def test_decode_benchmark(benchmark, test_video):
-    """Decode a range of frames from a video."""
-    decoder = VideoDecoder(0, "h265")
-    benchmark.pedantic(
-        lambda: [decoder.decode(str(test_video), i) for i in range(9)],
-        iterations=4,
-        rounds=100,
-    )
