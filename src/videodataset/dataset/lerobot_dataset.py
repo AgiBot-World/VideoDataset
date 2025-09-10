@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 import torch
-from lerobot.datasets.lerobot_dataset import LeRobotDataset # type: ignore
+from lerobot.datasets.lerobot_dataset import LeRobotDataset  # type: ignore
 
 from videodataset.dataset.base_dataset import BaseVideoDataset
 

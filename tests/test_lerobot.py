@@ -5,11 +5,6 @@ import random
 import numpy as np
 import pytest
 
-try:
-    from lerobot.datasets.lerobot_dataset import LeRobotDataset  # type: ignore
-except ImportError:
-    pytestmark = pytest.mark.skip("lerobot not installed, skipping test")
-
 
 @pytest.mark.parametrize(
     ("video_dataset", "lerobot_dataset"),

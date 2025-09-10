@@ -41,7 +41,7 @@ target_link_libraries(
   PUBLIC ${LIBNVCUVID} cuda ${FFMPEG_LIBRARIES} dlpack::dlpack Python::Python
          pybind11::headers)
 
-pybind11_add_module(${target_name} MODULE pybind/bind.cpp)
+pybind11_add_module(${target_name} MODULE)
 warn_target(${target_name})
 harden_target(${target_name})
 sanitize_target(${target_name})
