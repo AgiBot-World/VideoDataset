@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import torch
 from torch import nn
+import torch.distributed as dist
 
 
 class AdaptiveToyModel(nn.Module):
@@ -13,30 +14,38 @@ class AdaptiveToyModel(nn.Module):
         self.state_keys: list[str] = []
         self.action_keys: list[str] = []
         self.hidden_dim = hidden_dim
-        self.network: nn.Sequential | None = None
         self.flattened_action_tensors: torch.Tensor | None = None
         self._is_batched: bool = False
-        self.input_dim: int = 0
-        self.action_dim: int = 0
+        self.input_dim: int = 921621
+        self.action_dim: int = 8
+        self.network = nn.Sequential(
+            nn.Linear(self.input_dim, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.hidden_dim // 2),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim // 2, self.action_dim),
+        ).cuda()
+        self.initial = False
 
     def forward(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
         """Forward pass with lazy initialization of the network."""
-        if self.network is None:
+        if not self.initial:
             self._initialize_network_from_batch(batch)
+            self.initial = True
 
         self._is_batched = batch[self.image_keys[0]].ndim == 4
         # Assume uniform batch size across all fields
         batch_size = batch[self.image_keys[0]].shape[0] if self._is_batched else 1
 
         flat_images = self._prep_and_flatten_tensors(
-            batch, self.image_keys, batch_size, use_cpu=True
+            batch, self.image_keys, batch_size, use_cpu=False
         )
         flat_states = self._prep_and_flatten_tensors(
-            batch, self.state_keys, batch_size, use_cpu=True
+            batch, self.state_keys, batch_size, use_cpu=False
         )
 
         self.flattened_action_tensors = self._prep_and_flatten_tensors(
-            batch, self.action_keys, batch_size, use_cpu=True
+            batch, self.action_keys, batch_size, use_cpu=False
         )
 
         concatenated_input = torch.cat([flat_images, flat_states], dim=1)
@@ -60,14 +69,6 @@ class AdaptiveToyModel(nn.Module):
         self.input_dim = image_dim + state_dim
 
         self.action_dim = self._get_dim(batch, batch_size, self.action_keys)
-
-        self.network = nn.Sequential(
-            nn.Linear(self.input_dim, self.hidden_dim),
-            nn.ReLU(),
-            nn.Linear(self.hidden_dim, self.hidden_dim // 2),
-            nn.ReLU(),
-            nn.Linear(self.hidden_dim // 2, self.action_dim),
-        )
         self._initialize_weights()
 
     def _get_dim(
@@ -92,6 +93,8 @@ class AdaptiveToyModel(nn.Module):
             tensor = batch[key]
             if use_cpu:
                 tensor = tensor.cpu()
+            else:
+                tensor = tensor.cuda()
             tensors.append(tensor)
         return torch.cat([t.reshape(batch_size, -1) for t in tensors], dim=1)
 
