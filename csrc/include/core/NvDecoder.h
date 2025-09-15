@@ -226,7 +226,7 @@ public:
     *           - CUdeviceptr: Memory address of the decoded frame in device memory
     *           - int64_t:     Presentation timestamp associated with the decoded frame
     */
-    std::vector<std::tuple<CUdeviceptr, int64_t>> VideoDecode(const uint8_t* bsl_data, int bsl, int nFlags = 0);
+    std::vector<std::tuple<CUdeviceptr, int64_t>> VideoDecode(const uint8_t* bsl_data, int bsl, int nFlags = 0, int64_t pts = 0);
 
     /**
     *   @brief  This function returns a decoded frame and timestamp. This function should be called in a loop for

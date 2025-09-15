@@ -829,8 +829,9 @@ int NvDecoder::Decode(const uint8_t *pData, int nSize, int nFlags, int64_t nTime
  */
 std::vector<std::tuple<CUdeviceptr, int64_t>> NvDecoder::VideoDecode(const uint8_t* encodedData,
                                                                      int dataSize,
-                                                                     int decodeFlags) {
-    const int numFrames = this->Decode(encodedData, dataSize, decodeFlags);
+                                                                     int decodeFlags,
+                                                                     int64_t pts) {
+    const int numFrames = this->Decode(encodedData, dataSize, decodeFlags, pts);
     std::vector<std::tuple<CUdeviceptr, int64_t>> decodedFrames;
     decodedFrames.reserve(numFrames); // Pre-allocate memory for performance optimization
 
