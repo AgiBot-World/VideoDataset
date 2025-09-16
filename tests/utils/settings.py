@@ -73,23 +73,5 @@ class TestTrainingSettings(BaseSettings):
         "case_sensitive": False,
     }
 
-
-class TestBenchmarkSettings(BaseSettings):
-    """Settings class for benchmark settings"""
-
-    decoder_rounds: int = 10
-    decoder_iterations: int = 4
-
-    dataset_rounds: int = 100
-    dataset_iterations: int = 4
-
-    model_config = {
-        "env_file": ".env.test",
-        "env_prefix": "TEST_",
-        "case_sensitive": False,
-    }
-
-
 dataset_settings = TestDatasetSettings()
 training_settings = TestTrainingSettings()
-benchmark_settings = TestBenchmarkSettings()

@@ -43,7 +43,6 @@ test = [
   "pydantic>=2.9",
   "pydantic-settings>=2",
   "pytest>=6",
-  "pytest-benchmark[histogram]>=5.1",
   "pytest-cov>=6.1",
   "scikit-image>=0.25.2",
 ]
