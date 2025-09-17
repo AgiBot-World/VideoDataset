@@ -60,6 +60,7 @@ cudaVideoCodec avCodec2NvCodec(AVCodecID id) {
 AVCodecID getAVCodeID(const std::string& codec) {
     static const std::unordered_map<std::string, AVCodecID> codecMap = {{"hevc", AV_CODEC_ID_HEVC},
                                                                         {"h265", AV_CODEC_ID_HEVC},
+                                                                        {"libx265", AV_CODEC_ID_HEVC},
                                                                         {"h264", AV_CODEC_ID_H264},
                                                                         {"av1", AV_CODEC_ID_AV1},
                                                                         {"vp9", AV_CODEC_ID_VP9}};
