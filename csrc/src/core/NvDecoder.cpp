@@ -814,52 +814,6 @@ int NvDecoder::Decode(const uint8_t *pData, int nSize, int nFlags, int64_t nTime
     return m_nDecodedFrame;
 }
 
-/**
- * @brief Decodes the given encoded video data using NvDecoder.
- *
- * This function decodes the provided encoded video data and returns a vector of tuples
- * where each tuple contains a CUdeviceptr to the decoded frame data and its corresponding timestamp.
- * It also pre-allocates memory for performance optimization and validates the output format of the decoded frames.
- *
- * @param encodedData Pointer to the encoded video data.
- * @param dataSize Size of the encoded video data.
- * @param decodeFlags Decoding flags.
- * @return A vector of tuples containing CUdeviceptr and timestamp of the decoded frames.
- * @throws std::runtime_error if an unsupported video format is encountered during the decoding process.
- */
-std::vector<std::tuple<CUdeviceptr, int64_t>> NvDecoder::VideoDecode(const uint8_t* encodedData,
-                                                                     int dataSize,
-                                                                     int decodeFlags,
-                                                                     int64_t pts) {
-    const int numFrames = this->Decode(encodedData, dataSize, decodeFlags, pts);
-    std::vector<std::tuple<CUdeviceptr, int64_t>> decodedFrames;
-    decodedFrames.reserve(numFrames); // Pre-allocate memory for performance optimization
-
-    for (int frameIndex = 0; frameIndex < numFrames; ++frameIndex) {
-        // Retrieve frame data and timestamp
-        int64_t timestamp = 0;
-        CUdeviceptr frameData = reinterpret_cast<CUdeviceptr>(this->GetFrame(&timestamp));
-
-        // Validate output format compatibility
-        const auto outputFormat = this->GetOutputFormat();
-        switch (outputFormat) {
-            case cudaVideoSurfaceFormat_NV12:
-            case cudaVideoSurfaceFormat_P016:
-            case cudaVideoSurfaceFormat_YUV444:
-            case cudaVideoSurfaceFormat_YUV444_16Bit:
-                // Supported base formats, no special handling needed
-                break;
-
-            default:
-                throw std::runtime_error("Unsupported video format: " + std::to_string(static_cast<int>(outputFormat)));
-        }
-
-        decodedFrames.emplace_back(frameData, timestamp);
-    }
-
-    return decodedFrames;
-}
-
 uint8_t* NvDecoder::GetFrame(int64_t* pTimestamp)
 {
     if (m_nDecodedFrame > 0)

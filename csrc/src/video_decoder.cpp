@@ -253,75 +253,87 @@ VideoDecoder::~VideoDecoder() {
     ck(cuDevicePrimaryCtxRelease(gpuId_));
 }
 
+void VideoDecoder::checkDecodeFormat() const {
+    const auto outputFormat = this->nvDecoder_->GetOutputFormat();
+    switch (outputFormat) {
+        case cudaVideoSurfaceFormat_NV12:
+        case cudaVideoSurfaceFormat_P016:
+        case cudaVideoSurfaceFormat_YUV444:
+        case cudaVideoSurfaceFormat_YUV444_16Bit:
+            // Supported base formats, no special handling needed
+            break;
+        default:
+            throw std::runtime_error("Unsupported video format: " + std::to_string(static_cast<int>(outputFormat)));
+    }
+}
+
 DecodedFrame VideoDecoder::decode(const std::string& videoPath, int frameIndex) {
-    std::vector<DecodedFrame> decodedFrames;
-    decodedFrames.reserve(30);
+    DecodedFrame decodedFrame;
+    std::tuple<CUdeviceptr, int64_t> decodedTuple{0, 0};
 
     try {
         Demuxer demuxer(videoPath);
         auto frameTimestamp = demuxer.seek(static_cast<size_t>(frameIndex));
 
-        std::vector<std::tuple<CUdeviceptr, int64_t>> decodedTuples;
         uint8_t* video = nullptr;
         int64_t timestamp = 0;
         int videoBytes = 0;
         while (demuxer.demux(&video, &videoBytes, timestamp) && timestamp <= frameTimestamp) {
-            decodedTuples = this->nvDecoder_->VideoDecode(video, videoBytes, CUVID_PKT_ENDOFPICTURE, timestamp);
+            auto frame_num = this->nvDecoder_->Decode(video, videoBytes, CUVID_PKT_ENDOFPICTURE, timestamp);
+            if (frame_num == 0)
+                continue;
+            this->checkDecodeFormat();
         }
 
-        std::transform(decodedTuples.begin(), // Convert decoded data to frame structure
-                       decodedTuples.end(),
-                       std::back_inserter(decodedFrames),
-                       [this](std::tuple<CUdeviceptr, int64_t> tup) {
-                           DecodedFrame frame;
-                           // Get decoder parameters
-                           const size_t width = static_cast<size_t>(this->nvDecoder_->GetWidth());
-                           const size_t height = static_cast<size_t>(this->nvDecoder_->GetHeight());
-                           const CUdeviceptr data_ptr = std::get<0>(tup);
-                           const int64_t pts = std::get<1>(tup);
-
-                           // Build YUV memory view
-                           frame.timestamp = pts;
-                           // Y component view
-                           frame.views.push_back(CAIMemoryView{
-                               {height, width, 1},                                      // Shape
-                               {width, 1, 1},                                           // Strides
-                               "|u1",                                                   // Data type
-                               reinterpret_cast<size_t>(this->nvDecoder_->GetStream()), // Stream ID
-                               data_ptr,                                                // Data pointer
-                               false                                                    // Read-only flag
-                           });
-                           // UV component view (assumes contiguous memory)
-                           frame.views.push_back(CAIMemoryView{{height / 2, width / 2, 2}, // Shape
-                                                               {width / 2 * 2, 2, 1},      // Strides
-                                                               "|u1",                      // Data type
-                                                               reinterpret_cast<size_t>(this->nvDecoder_->GetStream()),
-                                                               data_ptr + width * height, // UV offset
-                                                               false});
-
-                           // Load DLPack data (original implementation preserved)
-                           std::vector<size_t> dl_shape{static_cast<size_t>(height * 1.5), width};
-                           std::vector<size_t> dl_stride{width, 1};
-                           frame.extBuf->LoadDLPack(dl_shape,
-                                                    dl_stride,
-                                                    "|u1",
-                                                    this->gpuId_,
-                                                    reinterpret_cast<size_t>(this->nvDecoder_->GetStream()),
-                                                    data_ptr,
-                                                    false);
-                           return frame;
-                       });
+        int64_t decodedFrameTimeStamp = 0;
+        CUdeviceptr frameData = reinterpret_cast<CUdeviceptr>(this->nvDecoder_->GetFrame(&decodedFrameTimeStamp));
+        decodedTuple = std::make_tuple(frameData, decodedFrameTimeStamp);
     }
     catch (...) {
         throw; // Preserve original exception
     }
 
-    // Validate decoding results
-    if (decodedFrames.empty()) {
+    if (std::get<0>(decodedTuple) == 0) {
         throw std::runtime_error("No frames decoded");
     }
 
-    return decodedFrames.back();
+    // Get decoder parameters
+    const size_t width = static_cast<size_t>(this->nvDecoder_->GetWidth());
+    const size_t height = static_cast<size_t>(this->nvDecoder_->GetHeight());
+    const CUdeviceptr data_ptr = std::get<0>(decodedTuple);
+    const int64_t pts = std::get<1>(decodedTuple);
+
+    // Build YUV memory view
+    decodedFrame.timestamp = pts;
+    // Y component view
+    decodedFrame.views.push_back(CAIMemoryView{
+        {height, width, 1},                                      // Shape
+        {width, 1, 1},                                           // Strides
+        "|u1",                                                   // Data type
+        reinterpret_cast<size_t>(this->nvDecoder_->GetStream()), // Stream ID
+        data_ptr,                                                // Data pointer
+        false                                                    // Read-only flag
+    });
+    // UV component view (assumes contiguous memory)
+    decodedFrame.views.push_back(CAIMemoryView{{height / 2, width / 2, 2}, // Shape
+                                               {width / 2 * 2, 2, 1},      // Strides
+                                               "|u1",                      // Data type
+                                               reinterpret_cast<size_t>(this->nvDecoder_->GetStream()),
+                                               data_ptr + width * height, // UV offset
+                                               false});
+
+    // Load DLPack data (original implementation preserved)
+    std::vector<size_t> dl_shape{static_cast<size_t>(height * 1.5), width};
+    std::vector<size_t> dl_stride{width, 1};
+    decodedFrame.extBuf->LoadDLPack(dl_shape,
+                                    dl_stride,
+                                    "|u1",
+                                    this->gpuId_,
+                                    reinterpret_cast<size_t>(this->nvDecoder_->GetStream()),
+                                    data_ptr,
+                                    false);
+
+    return decodedFrame;
 }
 
 PYBIND11_MODULE(_decoder, m) {
@@ -353,7 +365,7 @@ Returns:
 
 Raises:
     RuntimeError: if there are issues such as file opening failure, decoding failure, or target frame not found.)pbdoc"))
-        .def("gpuId", &VideoDecoder::gpuId, py::doc(R"(ID of the GPU being used for decoding)"))
+        .def("gpu_id", &VideoDecoder::gpuId, py::doc(R"(ID of the GPU being used for decoding)"))
         .def("codec", &VideoDecoder::codec, py::doc(R"(Video codec format being decoded)"));
 
     py::class_<DecodedFrame, std::shared_ptr<DecodedFrame>>(m, "DecodedFrame")
@@ -379,8 +391,9 @@ Raises:
             py::doc(R"(Export the buffer as a DLPack tensor)"))
         .def(
             "__dlpack_device__",
-            [](std::shared_ptr<DecodedFrame>&) {
-                return py::make_tuple(py::int_(static_cast<int>(DLDeviceType::kDLCUDA)), py::int_(static_cast<int>(0)));
+            [](std::shared_ptr<DecodedFrame>& self) {
+                return py::make_tuple(py::int_(static_cast<int>(self->extBuf->dlTensor().device.device_type)),
+                                      py::int_(static_cast<int>(self->extBuf->dlTensor().device.device_id)));
             },
             py::doc(R"(Get the device associated with the buffer)"));
 

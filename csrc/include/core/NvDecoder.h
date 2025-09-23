@@ -217,18 +217,6 @@ public:
     int Decode(const uint8_t *pData, int nSize, int nFlags = 0, int64_t nTimestamp = 0);
 
     /**
-    *   @brief  This function decodes video data and returns a collection of decoded frames with their
-    *           associated metadata. All decoded frames should be processed before subsequent decode calls.
-    *   @param  bsl_data - pointer to the input bitstream data buffer containing encoded video content
-    *   @param  bsl      - size of the input bitstream data buffer in bytes
-    *   @param  nFlags   - CUvideopacketflags for configuring decoder behavior (default: 0)
-    *   @return A vector of tuples where each tuple contains:
-    *           - CUdeviceptr: Memory address of the decoded frame in device memory
-    *           - int64_t:     Presentation timestamp associated with the decoded frame
-    */
-    std::vector<std::tuple<CUdeviceptr, int64_t>> VideoDecode(const uint8_t* bsl_data, int bsl, int nFlags = 0, int64_t pts = 0);
-
-    /**
     *   @brief  This function returns a decoded frame and timestamp. This function should be called in a loop for
     *   fetching all the frames that are available for display.
     */

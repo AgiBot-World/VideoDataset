@@ -14,13 +14,15 @@ public:
 
     ~VideoDecoder();
 
-    int gpuId() const { return gpuId_; }
+    int gpuId() const noexcept { return gpuId_; }
 
-    std::string codec() const { return codec_; }
+    std::string codec() const noexcept { return codec_; }
 
     DecodedFrame decode(const std::string& videoPath, int frameIndex);
 
 private:
+    void checkDecodeFormat() const;
+
     std::unique_ptr<NvDecoder> nvDecoder_{nullptr};
     CUcontext cuCtx_{nullptr}; // CUDA context for GPU operations
     CUdevice gpuId_{0};
