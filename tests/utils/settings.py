@@ -73,5 +73,6 @@ class TestTrainingSettings(BaseSettings):
         "case_sensitive": False,
     }
 
+
 dataset_settings = TestDatasetSettings()
 training_settings = TestTrainingSettings()

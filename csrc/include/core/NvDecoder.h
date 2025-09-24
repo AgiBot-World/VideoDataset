@@ -35,9 +35,11 @@
 #include <iostream>
 #include <sstream>
 #include <string.h>
+#include <map>
+
+
 #include "nvcuvid.h"
 #include "NvCodecUtils.h"
-#include <map>
 
 #define MAX_FRM_CNT 32
 
@@ -264,6 +266,7 @@ public:
     // Session overhead refers to decoder initialization and deinitialization time
     static void addDecoderSessionOverHead(int sessionID, int64_t duration) { sessionOverHead[sessionID] += duration; }
     static int64_t getDecoderSessionOverHead(int sessionID) { return sessionOverHead[sessionID]; }
+
 
 private:
     int decoderSessionID; // Decoder session identifier. Used to gather session level stats.

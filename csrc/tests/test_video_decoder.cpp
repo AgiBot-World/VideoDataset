@@ -1,6 +1,8 @@
 #include "catch2/catch_all.hpp"
 #include "video_decoder.hpp"
 
+#include <pybind11/embed.h>
+#include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <cstddef>
 #include <filesystem>
@@ -30,8 +32,8 @@ public:
         }
 
         std::ostringstream commandFormatter;
-        commandFormatter << "ffmpeg -y -f lavfi -i mandelbrot=size=" << width << "x" << height << ":rate=30 "
-                         << "-t " << duration << " -c:v " << codec << " -pix_fmt yuv420p -r 1 -g 16 -bf 0 -f mp4 "
+        commandFormatter << "ffmpeg -y -f lavfi -i mandelbrot=size=" << width << "x" << height << ":rate=30 " << "-t "
+                         << duration << " -c:v " << codec << " -pix_fmt yuv420p -g 16 -bf 0 -f mp4 "
                          << video_path.string();
 
         auto ret = system(commandFormatter.str().c_str());
@@ -57,8 +59,12 @@ public:
 };
 
 TEST_CASE_METHOD(VideoFixture, "VideoDecoder.decode", "[VideoDecoder]") {
-    SECTION("Decode video") {
-        REQUIRE(fs::file_size(video_path) > 1024);
-        VideoDecoder(0, "h265").decode(video_path, 0);
-    }
+    py::scoped_interpreter guard{};
+    VideoDecoder(0, "h265").decode(video_path, 0);
+    auto frames = VideoDecoder(0, "h265").decodeToNps(video_path, {0, 3, 6, 9});
+    REQUIRE(frames.size() == 4);
+    auto np_frame = VideoDecoder(0, "h265").decodeToNp(video_path, 9);
+    REQUIRE(np_frame.ndim() == 2);
+    auto tensor_frame = VideoDecoder(0, "h265").decodeToTensor(video_path, 9);
+    REQUIRE(tensor_frame.dim() == 2);
 }

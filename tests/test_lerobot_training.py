@@ -107,9 +107,8 @@ def test_lerobot_training(dataset_fixture, dataloader_kwargs, adaptive_model, re
 
 
 def ddp_train(rank, world_size, dataset_name, num_workers, adaptive_model):
-
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '12355'
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = "12355"
     torch.cuda.set_device(rank)
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
 
@@ -149,12 +148,12 @@ def ddp_train(rank, world_size, dataset_name, num_workers, adaptive_model):
         pass
     except Exception as e:
         print(f"train error:{e}")
-    print(f'train elapsed time:{end_time-start_time}')
+    print(f"train elapsed time:{end_time - start_time}")
     dist.destroy_process_group()
 
 
 @pytest.mark.parametrize(
-    "dataset_name",["ucsd_kitchen_dataset", "ucsd_kitchen_video_dataset"]
+    "dataset_name", ["ucsd_kitchen_dataset", "ucsd_kitchen_video_dataset"]
 )
 @pytest.mark.parametrize("num_workers", [8, 4, 2, 1])
 def test_lerobot_video_dataset_training_bench(
@@ -165,7 +164,12 @@ def test_lerobot_video_dataset_training_bench(
     world_size = torch.cuda.device_count()
     print(f"world size:{world_size}", flush=True)
     start_time = time.perf_counter()
-    mp.spawn(ddp_train, args=(world_size, dataset_name, num_workers, adaptive_model), nprocs=world_size, join=True)
+    mp.spawn(
+        ddp_train,
+        args=(world_size, dataset_name, num_workers, adaptive_model),
+        nprocs=world_size,
+        join=True,
+    )
     elapsed_time = time.perf_counter() - start_time
     with capsys.disabled():
         print(

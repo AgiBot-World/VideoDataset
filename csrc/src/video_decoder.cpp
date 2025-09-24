@@ -3,15 +3,18 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
-#include <queue>
 #include <sstream>
 #include <unordered_map>
+#include <vector>
 
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <torch/expanding_array.h>
+#include <torch/extension.h>
+#include <torch/types.h>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -267,6 +270,78 @@ void VideoDecoder::checkDecodeFormat() const {
     }
 }
 
+std::vector<py::array_t<uint8_t>> VideoDecoder::decodeToNps(const std::string& videoPath,
+                                                            const std::vector<int>& frameIndices) {
+    std::vector<py::array_t<uint8_t>> decodedFrames;
+    decodedFrames.reserve(30);
+
+    for (auto frameIndex : frameIndices) {
+        decodedFrames.push_back(decodeToNp(videoPath, frameIndex));
+    }
+
+    if (decodedFrames.empty()) {
+        throw std::runtime_error("No frames decoded");
+    }
+
+    return decodedFrames;
+}
+
+py::array_t<uint8_t> VideoDecoder::decodeToNp(const std::string& videoPath, int frameIndex) {
+    try {
+        Demuxer demuxer(videoPath);
+        auto frameTimestamp = demuxer.seek(static_cast<size_t>(frameIndex));
+
+        uint8_t* video = nullptr;
+        int64_t timestamp = 0;
+        int videoBytes = 0;
+        while (demuxer.demux(&video, &videoBytes, timestamp) && timestamp <= frameTimestamp) {
+            auto frame_num = this->nvDecoder_->Decode(video, videoBytes, CUVID_PKT_ENDOFPICTURE, timestamp);
+            if (frame_num == 0)
+                continue;
+            this->checkDecodeFormat();
+        }
+    }
+    catch (...) {
+        throw; // Preserve original exception
+    }
+
+    int64_t decodedFrameTimeStamp = 0;
+    auto* frameData = this->nvDecoder_->GetFrame(&decodedFrameTimeStamp);
+    std::vector<ssize_t> shape = {static_cast<ssize_t>(this->nvDecoder_->GetHeight()*1.5), this->nvDecoder_->GetWidth()};
+    pybind11::array_t<uint8_t> decoded_frame_np(shape);
+    uint8_t* numpyData = decoded_frame_np.mutable_data();
+    NVDEC_API_CALL(cuMemcpyDtoH(numpyData, (CUdeviceptr)frameData, this->nvDecoder_->GetFrameSize()));
+    return decoded_frame_np;
+}
+
+torch::Tensor VideoDecoder::decodeToTensor(const std::string& videoPath, int frameIndex) {
+    try {
+        Demuxer demuxer(videoPath);
+        auto frameTimestamp = demuxer.seek(static_cast<size_t>(frameIndex));
+
+        uint8_t* video = nullptr;
+        int64_t timestamp = 0;
+        int videoBytes = 0;
+        while (demuxer.demux(&video, &videoBytes, timestamp) && timestamp <= frameTimestamp) {
+            auto frame_num = this->nvDecoder_->Decode(video, videoBytes, CUVID_PKT_ENDOFPICTURE, timestamp);
+            if (frame_num == 0)
+                continue;
+            this->checkDecodeFormat();
+        }
+    }
+    catch (...) {
+        throw; // Preserve original exception
+    }
+    int64_t decodedFrameTimeStamp = 0;
+    auto* frameData = this->nvDecoder_->GetFrame(&decodedFrameTimeStamp);
+    auto options = torch::TensorOptions().dtype(torch::kU8).device(torch::kCUDA, this->gpuId_);
+    return torch::from_blob(frameData,
+                            {static_cast<int64_t>(this->nvDecoder_->GetHeight() * 1.5),
+                             static_cast<int64_t>(this->nvDecoder_->GetWidth())},
+                            options)
+        .clone();
+}
+
 DecodedFrame VideoDecoder::decode(const std::string& videoPath, int frameIndex) {
     DecodedFrame decodedFrame;
     std::tuple<CUdeviceptr, int64_t> decodedTuple{0, 0};
@@ -348,6 +423,57 @@ PYBIND11_MODULE(_decoder, m) {
 Args:
     gpuid (int): GPU device ID to use for decoding.
     codec (int): Codec of the video stream to be decoded which contains h265, hevc, h264, av1, v9.)"))
+        .def("decode_to_nps",
+             &VideoDecoder::decodeToNps,
+             py::arg("video_path"),
+             py::arg("frame_indices"),
+             py::doc(R"pbdoc(Decode multiple frames from a video file.
+
+This function decodes multiple frames from a video file using the provided demuxer and decoder objects.
+
+Args:
+    video_path (str): The path to the video file to be decoded.
+    frame_indices (list): The indices of the frames to be decoded.
+
+Returns:
+    A list of numpy arrays representing the decoded frames.
+
+Raises:
+    RuntimeError: if there are issues such as file opening failure, decoding failure, or target frame not found.)pbdoc"))
+        .def("decode_to_np",
+             &VideoDecoder::decodeToNp,
+             py::arg("video_path"),
+             py::arg("frame_index"),
+             py::doc(R"pbdoc(Decode a single frame from a video file.
+
+This function decodes a single frame from a video file using the provided demuxer and decoder objects.
+
+Args:
+    video_path (str): The path to the video file to be decoded.
+    frame_index (int): The index of the frame to be decoded.
+
+Returns:
+    A numpy object representing the decoded frame.
+
+Raises:
+    RuntimeError: if there are issues such as file opening failure, decoding failure, or target frame not found.)pbdoc"))
+        .def("decode_to_tensor",
+             &VideoDecoder::decodeToTensor,
+             py::arg("video_path"),
+             py::arg("frame_index"),
+             py::doc(R"pbdoc(Decode a single frame from a video file.
+
+This function decodes a single frame from a video file using the provided demuxer and decoder objects.
+
+Args:
+    video_path (str): The path to the video file to be decoded.
+    frame_index (int): The index of the frame to be decoded.
+
+Returns:
+    A torch object representing the decoded frame.
+
+Raises:
+    RuntimeError: if there are issues such as file opening failure, decoding failure, or target frame not found.)pbdoc"))
         .def("decode",
              &VideoDecoder::decode,
              py::arg("video_path"),

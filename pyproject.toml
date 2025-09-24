@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "scikit_build_core.build"
-requires = [ "conan", "pybind11-stubgen", "scikit-build-core" ]
+requires = [ "conan", "mypy", "scikit-build-core", "torch" ]
 
 [project]
 name = "videodataset"
@@ -146,6 +146,8 @@ disable_error_code = [
   "operator",
   "assignment",
   "name-defined",
+  "no-untyped-def",
+  "type-arg",
 ]
 exclude = [ "src/videodataset/_decoder.pyi" ]
 

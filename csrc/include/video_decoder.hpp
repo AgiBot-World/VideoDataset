@@ -3,8 +3,9 @@
 #include <memory>
 #include <string>
 
+#include <torch/torch.h>
+
 #include "core/PyCAIMemoryView.hpp"
-#include "core/nvcuvid.h"
 
 class NvDecoder;
 
@@ -17,6 +18,12 @@ public:
     int gpuId() const noexcept { return gpuId_; }
 
     std::string codec() const noexcept { return codec_; }
+
+    std::vector<py::array_t<uint8_t>> decodeToNps(const std::string& videoPath, const std::vector<int>& frameIndices);
+
+    py::array_t<uint8_t> decodeToNp(const std::string& videoPath, int frameIndex);
+
+    torch::Tensor decodeToTensor(const std::string& videoPath, int frameIndex);
 
     DecodedFrame decode(const std::string& videoPath, int frameIndex);
 

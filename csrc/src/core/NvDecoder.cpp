@@ -25,11 +25,16 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <array>
 #include <iostream>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <vector>
 
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include "core/NvDecoder.h"
 #include "core/Logger.h"
@@ -666,6 +671,8 @@ int NvDecoder::HandlePictureDisplay(CUVIDPARSERDISPINFO *pDispInfo) {
         m.Height = m_nChromaHeight;
         CUDA_DRVAPI_CALL(cuMemcpy2DAsync(&m, m_cuvidStream));
     }
+
+
     CUDA_DRVAPI_CALL(cuStreamSynchronize(m_cuvidStream));
     CUDA_DRVAPI_CALL(cuCtxPopCurrent(NULL));
 

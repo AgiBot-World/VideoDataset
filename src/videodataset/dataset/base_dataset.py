@@ -51,6 +51,30 @@ class BaseVideoDataset:
             )
         return self.decoders[decoder_key]
 
+    def decode_video_frames(
+        self,
+        decoder: VideoDecoder,
+        video_path: str | Path,
+        frame_indices: list[int],
+        to_cpu: bool = False,
+    ) -> list[torch.Tensor]:
+        """Decode specific frames from a video file using the provided decoder.
+        Converts the decoded frames from NV12 format to RGB and optionally moves
+        the tensors to the CPU.
+        """
+        decoded_frames = decoder.decode_to_nps(str(video_path), frame_indices)
+
+        rgb_tensors = []
+        for np_frame in decoded_frames:
+            rgb_tensor = nv12_to_rgb(
+                torch.from_numpy(np_frame).cuda(decoder.gpu_id()),
+                np_frame.shape[1],
+                int(np_frame.shape[0] / 1.5),
+            )
+            rgb_tensors.append(rgb_tensor if not to_cpu else rgb_tensor.cpu())
+
+        return rgb_tensors
+
     def decode_video_frame(
         self,
         decoder: VideoDecoder,
@@ -62,10 +86,12 @@ class BaseVideoDataset:
         Converts the decoded frame from NV12 format to RGB and optionally moves
         the tensor to the CPU.
         """
-        decoded_frame = decoder.decode(str(video_path), frame_idx)
-        (height, width) = decoded_frame.shape
-        src_tensor = torch.from_dlpack(decoded_frame)
-        rgb_tensor = nv12_to_rgb(src_tensor, width, int(height / 1.5))
+        decoded_frame = decoder.decode_to_tensor(str(video_path), frame_idx)
+        rgb_tensor = nv12_to_rgb(
+            decoded_frame,
+            decoded_frame.shape[1],
+            int(decoded_frame.shape[0] / 1.5),
+        )
 
         if to_cpu:
             rgb_tensor = rgb_tensor.cpu()
