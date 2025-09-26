@@ -1,24 +1,26 @@
 from __future__ import annotations
 
 import os
+import time
+
 import pytest
 import torch
-import time
 import torch.distributed as dist
 import torch.multiprocessing as mp
-
-from torch import nn
-from torch.utils.data import DataLoader
-from torch.nn.parallel import DistributedDataParallel
-
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
-from videodataset.dataset.lerobot_dataset import LeRobotVideoDataset
+from torch import nn
+from torch.multiprocessing import Queue
+from torch.nn.parallel import DistributedDataParallel
+from torch.utils.data import DataLoader
+from torchvision import transforms
 
+from tests.utils.model import AdaptiveToyModel
 from tests.utils.settings import dataset_settings, training_settings
+from videodataset.dataset.lerobot_dataset import LeRobotVideoDataset
 
 
 @pytest.mark.parametrize(
-    ("dataset_fixture", "dataloader_kwargs"),
+    ("dataset_fixture", "dataloader_kwargs", "dataset_name"),
     [
         (
             "ucsd_kitchen_video_dataset",
@@ -26,13 +28,19 @@ from tests.utils.settings import dataset_settings, training_settings
                 "num_workers": training_settings.num_workers,
                 "multiprocessing_context": "spawn",
             },
+            "ucsd_kitchen_dataset",
         ),
     ],
 )
-def test_lerobot_fwd_pass(dataset_fixture, dataloader_kwargs, adaptive_model, request):
+def test_lerobot_fwd_pass(dataset_fixture, dataloader_kwargs, dataset_name, request):
     """Test the forward pass for both vanilla and video datasets."""
     dataset = request.getfixturevalue(dataset_fixture)
     dataloader = DataLoader(dataset=dataset, batch_size=16, **dataloader_kwargs)
+
+    input_dim = dataset_settings.lerobot_datasets_input_dim[dataset_name]
+    action_dim = dataset_settings.lerobot_datasets_action_dim[dataset_name]
+
+    adaptive_model = AdaptiveToyModel(input_dim=input_dim, action_dim=action_dim)
 
     with torch.no_grad():
         for i, batch in enumerate(dataloader):
@@ -43,7 +51,7 @@ def test_lerobot_fwd_pass(dataset_fixture, dataloader_kwargs, adaptive_model, re
 
 
 @pytest.mark.parametrize(
-    ("dataset_fixture", "dataloader_kwargs"),
+    ("dataset_fixture", "dataloader_kwargs", "dataset_name"),
     [
         (
             "ucsd_kitchen_video_dataset",
@@ -51,10 +59,11 @@ def test_lerobot_fwd_pass(dataset_fixture, dataloader_kwargs, adaptive_model, re
                 "num_workers": training_settings.num_workers,
                 "multiprocessing_context": "spawn",
             },
+            "ucsd_kitchen_dataset",
         ),
     ],
 )
-def test_lerobot_training(dataset_fixture, dataloader_kwargs, adaptive_model, request):
+def test_lerobot_training(dataset_fixture, dataloader_kwargs, dataset_name, request):
     """Test a short training loop to ensure model and data are compatible."""
     num_epochs = 2
     termination_step = training_settings.train_iteration_limit
@@ -63,7 +72,9 @@ def test_lerobot_training(dataset_fixture, dataloader_kwargs, adaptive_model, re
         dataset=dataset, batch_size=training_settings.batch_size, **dataloader_kwargs
     )
 
-    model = adaptive_model
+    input_dim = dataset_settings.lerobot_datasets_input_dim[dataset_name]
+    action_dim = dataset_settings.lerobot_datasets_action_dim[dataset_name]
+    model = AdaptiveToyModel(input_dim=input_dim, action_dim=action_dim)
     criterion = nn.MSELoss()
     optimizer = None
 
@@ -106,27 +117,39 @@ def test_lerobot_training(dataset_fixture, dataloader_kwargs, adaptive_model, re
                 break
 
 
-def ddp_train(rank, world_size, dataset_name, num_workers, adaptive_model):
+def ddp_train(
+    rank,
+    world_size,
+    dataset_cls,
+    dataset_name,
+    num_workers,
+    result_queue,
+):
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = "12355"
     torch.cuda.set_device(rank)
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
 
-    dataset = None
-    if dataset_name == "ucsd_kitchen_dataset":
-        dataset = LeRobotDataset(
-            repo_id=None,
-            root=dataset_settings.lerobot_datasets_root_paths["ucsd_kitchen_dataset"],
-        )
-    elif dataset_name == "ucsd_kitchen_video_dataset":
-        dataset = LeRobotVideoDataset(
-            repo_id=None,
-            root=dataset_settings.lerobot_datasets_root_paths["ucsd_kitchen_dataset"],
-        )
+    image_transforms = transforms.Compose(
+        [
+            transforms.Resize((256, 256)),
+        ]
+    )
+
+    dataset = dataset_cls(
+        repo_id=None,
+        root=dataset_settings.lerobot_datasets_root_paths[dataset_name],
+        image_transforms=image_transforms,
+    )
+
     dataloader = DataLoader(
         dataset, batch_size=16, num_workers=num_workers, multiprocessing_context="spawn"
     )
-    model = adaptive_model.to(rank)
+
+    input_dim = dataset_settings.lerobot_datasets_input_dim[dataset_name]
+    action_dim = dataset_settings.lerobot_datasets_action_dim[dataset_name]
+    model = AdaptiveToyModel(input_dim=input_dim, action_dim=action_dim)
+    model = model.to(rank)
     model = DistributedDataParallel(model, device_ids=[rank])
 
     optimizer = torch.optim.Adam(model.parameters())
@@ -138,40 +161,51 @@ def ddp_train(rank, world_size, dataset_name, num_workers, adaptive_model):
             batch_data = next(dataloader_iter)
             if i % 50 == 0:
                 print(f"step {i}", flush=True)
-                end_time = time.time()
             outputs = model(batch_data)
             loss = outputs.mean()
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
+        end_time = time.time()
     except StopIteration:
         pass
     except Exception as e:
         print(f"train error:{e}")
-    print(f"train elapsed time:{end_time - start_time}")
+
+    elapsed_time = end_time - start_time
+    result_queue.put((rank, elapsed_time))
     dist.destroy_process_group()
 
 
-@pytest.mark.parametrize(
-    "dataset_name", ["ucsd_kitchen_dataset", "ucsd_kitchen_video_dataset"]
-)
+@pytest.mark.parametrize("dataset_cls", [LeRobotDataset, LeRobotVideoDataset])
+@pytest.mark.parametrize("dataset_name", ["0730_h265_toy"])
 @pytest.mark.parametrize("num_workers", [8, 4, 2, 1])
 def test_lerobot_video_dataset_training_bench(
-    dataset_name, num_workers, adaptive_model, capsys, request
+    dataset_cls, dataset_name, num_workers, capsys, request
 ):
     """Benchmark a LeRobotVideoDataset training loop to ensure it is fast enough."""
 
+    mp.set_start_method("spawn", force=True)
+
     world_size = torch.cuda.device_count()
     print(f"world size:{world_size}", flush=True)
-    start_time = time.perf_counter()
+
+    result_queue = Queue()
     mp.spawn(
         ddp_train,
-        args=(world_size, dataset_name, num_workers, adaptive_model),
+        args=(
+            world_size,
+            dataset_cls,
+            dataset_name,
+            num_workers,
+            result_queue,
+        ),
         nprocs=world_size,
         join=True,
     )
-    elapsed_time = time.perf_counter() - start_time
     with capsys.disabled():
-        print(
-            f"{dataset_name} with {num_workers} workers, elapsed: {elapsed_time:.2f} seconds"
-        )
+        for _ in range(world_size):
+            rank, elapsed_time = result_queue.get()
+            print(
+                f"{dataset_name} with {num_workers} workers, rank{rank} elapsed: {elapsed_time:.2f} seconds"
+            )

@@ -13,7 +13,6 @@ try:
 except ImportError:
     pass
 
-from tests.utils.model import AdaptiveToyModel
 from tests.utils.settings import dataset_settings
 
 
@@ -107,9 +106,3 @@ def ucsd_kitchen_video_dataset(lerobot_check) -> LeRobotVideoDataset:
         pytest.skip("No available dataset in settings")
 
     return dataset
-
-
-@pytest.fixture
-def adaptive_model() -> AdaptiveToyModel:
-    """Fixture to initialize an toy model."""
-    return AdaptiveToyModel()
