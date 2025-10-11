@@ -28,17 +28,22 @@ class TestDatasetSettings(BaseSettings):
         "ucsd_kitchen_dataset": Path(
             "/mnt/public/huxingyu/lerobot/ucsd_kitchen_dataset"
         ),
+        "aidea_world": Path(
+            "/mnt/public/qiuying/aidea-world-h265-4/alpha/agibotworld/task_327"
+        ),
         "0730_h265_toy": Path("/mnt/public/qiuying/LEROBOT/H265/0730_toy_h265"),
     }
 
     lerobot_datasets_input_dim: dict[str, int] = {
         "ucsd_kitchen_dataset": 921621,
+        "aidea_world": 1572919,
         "0730_h265_toy": 589838,
     }
 
     lerobot_datasets_action_dim: dict[str, int] = {
         "ucsd_kitchen_dataset": 8,
         "0730_h265_toy": 14,
+        "aidea_world": 14,
     }
 
     @model_validator(mode="after")

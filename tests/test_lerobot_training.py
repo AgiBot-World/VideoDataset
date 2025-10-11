@@ -155,9 +155,10 @@ def ddp_train(
     optimizer = torch.optim.Adam(model.parameters())
     start_time = time.time()
     end_time = time.time()
+    current_step = 0
     try:
         dataloader_iter = iter(dataloader)
-        for i in range(1000):
+        for i in range(200):
             batch_data = next(dataloader_iter)
             if i % 50 == 0:
                 print(f"step {i}", flush=True)
@@ -166,9 +167,11 @@ def ddp_train(
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
+            current_step += 1
         end_time = time.time()
     except StopIteration:
-        pass
+        end_time = time.time()
+        print(f"train stop at step:{current_step}")
     except Exception as e:
         print(f"train error:{e}")
 
@@ -178,7 +181,7 @@ def ddp_train(
 
 
 @pytest.mark.parametrize("dataset_cls", [LeRobotDataset, LeRobotVideoDataset])
-@pytest.mark.parametrize("dataset_name", ["0730_h265_toy"])
+@pytest.mark.parametrize("dataset_name", ["aidea_world"])
 @pytest.mark.parametrize("num_workers", [8, 4, 2, 1])
 def test_lerobot_video_dataset_training_bench(
     dataset_cls, dataset_name, num_workers, capsys, request
@@ -207,5 +210,5 @@ def test_lerobot_video_dataset_training_bench(
         for _ in range(world_size):
             rank, elapsed_time = result_queue.get()
             print(
-                f"{dataset_name} with {num_workers} workers, rank{rank} elapsed: {elapsed_time:.2f} seconds"
+                f"{dataset_cls.__name__} {dataset_name} with {num_workers} workers, rank{rank} elapsed: {elapsed_time:.2f} seconds"
             )
