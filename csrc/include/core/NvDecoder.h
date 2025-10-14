@@ -29,6 +29,7 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <cstdint>
 #include <mutex>
 #include <vector>
 #include <string>
@@ -105,6 +106,17 @@ struct Dim {
 };
 
 /**
+* @brief Enums for User requested output formats
+*/
+enum class OutputColorType
+{
+    NATIVE, // Native format like NV12, YUV444 etc.
+    RGB, // Interleaved RGB
+    RGBP, // Planar RGB
+};
+
+
+/**
 * @brief Base class for decoder interface.
 */
 class NvDecoder {
@@ -115,10 +127,10 @@ public:
     *  Application must call this function to initialize the decoder, before
     *  starting to decode any frames.
     */
-    NvDecoder(CUcontext cuContext, bool bUseDeviceFrame, cudaVideoCodec eCodec, bool bLowLatency = false,
+    NvDecoder(int32_t gpuId, CUcontext cuContext, bool bUseDeviceFrame, cudaVideoCodec eCodec, bool bLowLatency = false,
               bool bDeviceFramePitched = false, const Rect *pCropRect = NULL, const Dim *pResizeDim = NULL,
               bool extract_user_SEI_Message = false, int maxWidth = 0, int maxHeight = 0, unsigned int clkRate = 1000,
-              bool force_zero_latency = false);
+              bool force_zero_latency = false, OutputColorType eOutputColorType=OutputColorType::RGB);
     ~NvDecoder();
 
     /**
@@ -130,6 +142,16 @@ public:
     *  @brief  This function is used to get the current CUDA context.
     */
     CUcontext GetContext() { return m_cuContext; }
+
+    /**
+    *  @brief  This function is used to get the memory type of decoded frame.
+    */
+    bool IsDeviceFrame() const { return m_bUseDeviceFrame; }
+
+    /**
+    *  @brief  This function is used to get the current gpu device id.
+    */
+    int32_t GetDeviceId() const { return m_gpuId; }
 
     /**
     *  @brief  This function is used to get the output frame width.
@@ -164,6 +186,24 @@ public:
     int GetFrameSize() { assert(m_nWidth); return GetWidth() * (m_nLumaHeight + (m_nChromaHeight * m_nNumChromaPlanes)) * m_nBPP; }
 
     /**
+    *   @brief  This function is used to get the current frame size based on color type.
+    */
+    uint32_t GetOutputFrameSize()
+    {
+        switch(m_eUserOutputColorType)
+        {
+            case OutputColorType::NATIVE:
+                return GetFrameSize();
+            case OutputColorType::RGB:
+            case OutputColorType::RGBP:
+                return GetWidth() * GetHeight() * 3;
+            default:
+                // unknown format. return native
+                return GetFrameSize();
+        }
+    }
+
+    /**
     *   @brief  This function is used to get the current frame Luma plane size.
     */
     int GetLumaPlaneSize() { assert(m_nWidth); return GetWidth() * m_nLumaHeight * m_nBPP; }
@@ -192,6 +232,11 @@ public:
     *   @brief  This function is used to get the YUV chroma format
     */
     cudaVideoSurfaceFormat GetOutputFormat() { return m_eOutputFormat; }
+
+    /**
+    *   @brief  This function is used to get the use requested color type
+    */
+    OutputColorType GetUserOutputColorType() const { return m_eUserOutputColorType; }
 
     /**
     *   @brief  This function is used to get information about the video stream (codec, display parameters etc)
@@ -330,7 +375,16 @@ private:
     */
     int ReconfigureDecoder(CUVIDEOFORMAT *pVideoFormat);
 
+    /**
+    *   @brief  This function generates the output in user requested format.
+    */
+    void GenerateOutput(CUdeviceptr dpSrcFrame, unsigned int nSrcPitch, uint8_t* pDecodedFrame);
+    void GenerateNativeOutput(CUdeviceptr dpSrcFrame, unsigned int nSrcPitch, uint8_t* pDecodedFrame);
+    void GenerateRGBOutput(CUdeviceptr dpSrcFrame, unsigned int nSrcPitch, uint8_t* pDecodedFrame);
+    void GenerateRGBPOutput(CUdeviceptr dpSrcFrame, unsigned int nSrcPitch, uint8_t* pDecodedFrame);
+
 private:
+    int32_t m_gpuId = 0;
     CUcontext m_cuContext = NULL;
     CUvideoctxlock m_ctxLock;
     CUvideoparser m_hParser = NULL;
@@ -382,4 +436,10 @@ private:
     // the display callback immediately after the decode callback.
     bool m_bForce_zero_latency = false;
     bool m_bExtractSEIMessage = false;
+
+    // Scratch frame to hold temporary output from color conversion
+    CUdeviceptr m_dpScratchFrame;
+
+    // User requested output format type
+    OutputColorType m_eUserOutputColorType;
 };

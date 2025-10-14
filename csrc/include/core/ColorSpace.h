@@ -1,7 +1,7 @@
 /*
  * This copyright notice applies to this file only
  *
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2010-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: MIT
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -23,34 +23,64 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef DLPACKUTILS_HPP
-#define DLPACKUTILS_HPP
+#pragma once
+#include <stdint.h>
+#include <cuda_runtime.h>
 
-#include <pybind11/buffer_info.h>
-#include <dlpack/dlpack.h>
+typedef enum ColorSpaceStandard {
+    ColorSpaceStandard_BT709 = 1,
+    ColorSpaceStandard_Unspecified = 2,
+    ColorSpaceStandard_Reserved = 3,
+    ColorSpaceStandard_FCC = 4,
+    ColorSpaceStandard_BT470 = 5,
+    ColorSpaceStandard_BT601 = 6,
+    ColorSpaceStandard_SMPTE240M = 7,
+    ColorSpaceStandard_YCgCo = 8,
+    ColorSpaceStandard_BT2020 = 9,
+    ColorSpaceStandard_BT2020C = 10
+} ColorSpaceStandard;
 
-namespace py = pybind11;
-
-class DLPackTensor final
-{
-public:
-    DLPackTensor() noexcept;
-    explicit DLPackTensor(const DLTensor &tensor);
-    explicit DLPackTensor(DLManagedTensor &&tensor);
-    explicit DLPackTensor(const py::buffer_info &info, const DLDevice &dev);
-
-    DLPackTensor(DLPackTensor &&that) noexcept;
-    ~DLPackTensor();
-
-    DLPackTensor &operator=(DLPackTensor &&that) noexcept;
-
-    const DLTensor *operator->() const;
-    DLTensor       *operator->();
-
-    const DLTensor &operator*() const;
-    DLTensor       &operator*();
-
-    DLManagedTensor m_tensor;
+union BGRA32 {
+    uint32_t d;
+    uchar4 v;
+    struct {
+        uint8_t b, g, r, a;
+    } c;
 };
 
-#endif // DLPACKUTILS_HPP
+union RGBA32 {
+    uint32_t d;
+    uchar4 v;
+    struct {
+        uint8_t r, g, b, a;
+    } c;
+};
+
+union BGRA64 {
+    uint64_t d;
+    ushort4 v;
+    struct {
+        uint16_t b, g, r, a;
+    } c;
+};
+
+union RGBA64 {
+    uint64_t d;
+    ushort4 v;
+    struct {
+        uint16_t r, g, b, a;
+    } c;
+};
+
+union RGB24 {
+    uchar3 d;
+    uchar3 v;
+    struct {
+        uint8_t r, g, b;
+    } c;
+};
+
+struct uchar3_2 {
+    uchar3 x;
+    uchar3 y;
+};

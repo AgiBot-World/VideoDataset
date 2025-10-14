@@ -245,10 +245,10 @@ VideoDecoder::VideoDecoder(int gpuId, const std::string& codec) {
     ck(cuDevicePrimaryCtxRetain(&cuCtx_, gpuId));
     cuCtxSetCurrent(cuCtx_);
 
-    this->nvDecoder_ = std::make_unique<NvDecoder>(this->cuCtx_, true, avCodec2NvCodec(getAVCodeID(codec)), true);
-
     this->codec_ = codec;
     this->gpuId_ = gpuId;
+    this->nvDecoder_ =
+        std::make_unique<NvDecoder>(this->gpuId_, this->cuCtx_, true, avCodec2NvCodec(getAVCodeID(codec)), true);
 }
 
 VideoDecoder::~VideoDecoder() {
@@ -263,6 +263,8 @@ void VideoDecoder::checkDecodeFormat() const {
         case cudaVideoSurfaceFormat_P016:
         case cudaVideoSurfaceFormat_YUV444:
         case cudaVideoSurfaceFormat_YUV444_16Bit:
+        case cudaVideoSurfaceFormat_NV16:
+        case cudaVideoSurfaceFormat_P216:
             // Supported base formats, no special handling needed
             break;
         default:
@@ -307,10 +309,12 @@ py::array_t<uint8_t> VideoDecoder::decodeToNp(const std::string& videoPath, int 
 
     int64_t decodedFrameTimeStamp = 0;
     auto* frameData = this->nvDecoder_->GetFrame(&decodedFrameTimeStamp);
-    std::vector<ssize_t> shape = {static_cast<ssize_t>(this->nvDecoder_->GetHeight()*1.5), this->nvDecoder_->GetWidth()};
+    std::vector<ssize_t> shape = {static_cast<ssize_t>(this->nvDecoder_->GetHeight()),
+                                  static_cast<ssize_t>(this->nvDecoder_->GetWidth()),
+                                  3};
     pybind11::array_t<uint8_t> decoded_frame_np(shape);
     uint8_t* numpyData = decoded_frame_np.mutable_data();
-    NVDEC_API_CALL(cuMemcpyDtoH(numpyData, (CUdeviceptr)frameData, this->nvDecoder_->GetFrameSize()));
+    NVDEC_API_CALL(cuMemcpyDtoH(numpyData, (CUdeviceptr)frameData, this->nvDecoder_->GetOutputFrameSize()));
     return decoded_frame_np;
 }
 
@@ -336,84 +340,14 @@ torch::Tensor VideoDecoder::decodeToTensor(const std::string& videoPath, int fra
     auto* frameData = this->nvDecoder_->GetFrame(&decodedFrameTimeStamp);
     auto options = torch::TensorOptions().dtype(torch::kU8).device(torch::kCUDA, this->gpuId_);
     return torch::from_blob(frameData,
-                            {static_cast<int64_t>(this->nvDecoder_->GetHeight() * 1.5),
-                             static_cast<int64_t>(this->nvDecoder_->GetWidth())},
+                            {static_cast<int64_t>(this->nvDecoder_->GetHeight()),
+                             static_cast<int64_t>(this->nvDecoder_->GetWidth()),
+                             3},
                             options)
         .clone();
 }
 
-DecodedFrame VideoDecoder::decode(const std::string& videoPath, int frameIndex) {
-    DecodedFrame decodedFrame;
-    std::tuple<CUdeviceptr, int64_t> decodedTuple{0, 0};
-
-    try {
-        Demuxer demuxer(videoPath);
-        auto frameTimestamp = demuxer.seek(static_cast<size_t>(frameIndex));
-
-        uint8_t* video = nullptr;
-        int64_t timestamp = 0;
-        int videoBytes = 0;
-        while (demuxer.demux(&video, &videoBytes, timestamp) && timestamp <= frameTimestamp) {
-            auto frame_num = this->nvDecoder_->Decode(video, videoBytes, CUVID_PKT_ENDOFPICTURE, timestamp);
-            if (frame_num == 0)
-                continue;
-            this->checkDecodeFormat();
-        }
-
-        int64_t decodedFrameTimeStamp = 0;
-        CUdeviceptr frameData = reinterpret_cast<CUdeviceptr>(this->nvDecoder_->GetFrame(&decodedFrameTimeStamp));
-        decodedTuple = std::make_tuple(frameData, decodedFrameTimeStamp);
-    }
-    catch (...) {
-        throw; // Preserve original exception
-    }
-
-    if (std::get<0>(decodedTuple) == 0) {
-        throw std::runtime_error("No frames decoded");
-    }
-
-    // Get decoder parameters
-    const size_t width = static_cast<size_t>(this->nvDecoder_->GetWidth());
-    const size_t height = static_cast<size_t>(this->nvDecoder_->GetHeight());
-    const CUdeviceptr data_ptr = std::get<0>(decodedTuple);
-    const int64_t pts = std::get<1>(decodedTuple);
-
-    // Build YUV memory view
-    decodedFrame.timestamp = pts;
-    // Y component view
-    decodedFrame.views.push_back(CAIMemoryView{
-        {height, width, 1},                                      // Shape
-        {width, 1, 1},                                           // Strides
-        "|u1",                                                   // Data type
-        reinterpret_cast<size_t>(this->nvDecoder_->GetStream()), // Stream ID
-        data_ptr,                                                // Data pointer
-        false                                                    // Read-only flag
-    });
-    // UV component view (assumes contiguous memory)
-    decodedFrame.views.push_back(CAIMemoryView{{height / 2, width / 2, 2}, // Shape
-                                               {width / 2 * 2, 2, 1},      // Strides
-                                               "|u1",                      // Data type
-                                               reinterpret_cast<size_t>(this->nvDecoder_->GetStream()),
-                                               data_ptr + width * height, // UV offset
-                                               false});
-
-    // Load DLPack data (original implementation preserved)
-    std::vector<size_t> dl_shape{static_cast<size_t>(height * 1.5), width};
-    std::vector<size_t> dl_stride{width, 1};
-    decodedFrame.extBuf->LoadDLPack(dl_shape,
-                                    dl_stride,
-                                    "|u1",
-                                    this->gpuId_,
-                                    reinterpret_cast<size_t>(this->nvDecoder_->GetStream()),
-                                    data_ptr,
-                                    false);
-
-    return decodedFrame;
-}
-
 PYBIND11_MODULE(_decoder, m) {
-    ExternalBuffer::Export(m);
-
     py::class_<VideoDecoder>(m, "VideoDecoder", R"pydoc(Video decoder with NvCodec acceleration.)pydoc")
         .def(py::init<const int, const std::string&>(),
              py::arg("gpu_id"),
@@ -474,78 +408,6 @@ Returns:
 
 Raises:
     RuntimeError: if there are issues such as file opening failure, decoding failure, or target frame not found.)pbdoc"))
-        .def("decode",
-             &VideoDecoder::decode,
-             py::arg("video_path"),
-             py::arg("frame_index"),
-             py::doc(R"pbdoc(Decode a single frame from a video file.
-
-This function decodes a single frame from a video file using the provided demuxer and decoder objects.
-
-Args:
-    video_path (str): The path to the video file to be decoded.
-    frame_index (int): The index of the frame to be decoded.
-
-Returns:
-    A DecodedFrame object representing the decoded frame.
-
-Raises:
-    RuntimeError: if there are issues such as file opening failure, decoding failure, or target frame not found.)pbdoc"))
         .def("gpu_id", &VideoDecoder::gpuId, py::doc(R"(ID of the GPU being used for decoding)"))
         .def("codec", &VideoDecoder::codec, py::doc(R"(Video codec format being decoded)"));
-
-    py::class_<DecodedFrame, std::shared_ptr<DecodedFrame>>(m, "DecodedFrame")
-        .def_readonly("timestamp", &DecodedFrame::timestamp)
-        .def_readonly("format", &DecodedFrame::format)
-        .def_property_readonly(
-            "shape",
-            [](std::shared_ptr<DecodedFrame>& self) { return self->extBuf->shape(); },
-            py::doc(R"(Get the shape of the buffer as an array)"))
-        .def("__repr__",
-             [](std::shared_ptr<DecodedFrame>& self) {
-                 std::stringstream ss;
-                 ss << "<DecodedFrame [";
-                 ss << "timestamp=" << self->timestamp;
-                 ss << ", " << py::str(py::cast(self->views));
-                 ss << "]>";
-                 return ss.str();
-             })
-        .def(
-            "__dlpack__",
-            [](std::shared_ptr<DecodedFrame>& self, py::object stream) { return self->extBuf->dlpack(stream); },
-            py::arg("stream") = NULL,
-            py::doc(R"(Export the buffer as a DLPack tensor)"))
-        .def(
-            "__dlpack_device__",
-            [](std::shared_ptr<DecodedFrame>& self) {
-                return py::make_tuple(py::int_(static_cast<int>(self->extBuf->dlTensor().device.device_type)),
-                                      py::int_(static_cast<int>(self->extBuf->dlTensor().device.device_id)));
-            },
-            py::doc(R"(Get the device associated with the buffer)"));
-
-    py::class_<CAIMemoryView, std::shared_ptr<CAIMemoryView>>(m, "CAIMemoryView")
-        .def(py::init<std::vector<size_t>, std::vector<size_t>, std::string, size_t, CUdeviceptr, bool>())
-        .def_readonly("shape", &CAIMemoryView::shape)
-        .def_readonly("stride", &CAIMemoryView::stride)
-        .def_readonly("dataptr", &CAIMemoryView::data)
-        .def("__repr__",
-             [](std::shared_ptr<CAIMemoryView>& self) {
-                 std::stringstream ss;
-                 ss << "<CAIMemoryView ";
-                 ss << py::str(py::cast(self->shape));
-                 ss << ">";
-                 return ss.str();
-             })
-        .def_readonly("data", &CAIMemoryView::data)
-        .def_property_readonly("__cuda_array_interface__", [](std::shared_ptr<CAIMemoryView>& self) {
-            py::dict dict;
-            dict["version"] = 3;
-            dict["shape"] = self->shape;
-            dict["strides"] = self->stride;
-            dict["typestr"] = self->typestr;
-            dict["stream"] = self->stream == 0 ? int(size_t(self->stream)) : 2;
-            dict["data"] = std::make_pair(self->data, false);
-            dict["gpuIdx"] = 0;
-            return dict;
-        });
 }

@@ -39,13 +39,15 @@
 #include <assert.h>
 #include <stdint.h>
 #include <string.h>
-#include "Logger.h"
 #include <ios>
 #include <sstream>
 #include <thread>
 #include <list>
 #include <vector>
 #include <condition_variable>
+
+#include "cuda.h"
+#include "Logger.h"
 
 extern simplelogger::Logger *logger;
 
@@ -535,6 +537,31 @@ template <class COLOR32>
 void YUV444ToColorPlanar(uint8_t *dpYUV444, int nPitch, uint8_t *dpBgrp, int nBgrpPitch, int nWidth, int nHeight, int iMatrix = 0);
 template <class COLOR32>
 void YUV444P16ToColorPlanar(uint8_t *dpYUV444, int nPitch, uint8_t *dpBgrp, int nBgrpPitch, int nWidth, int nHeight, int iMatrix = 4);
+
+template <class COLOR24>
+void Nv12ToColor24(uint8_t *dpNv12, int nNv12Pitch, uint8_t *dpBgra, int nBgraPitch, int nWidth, int nHeight, int iMatrix = 0, CUstream stream = 0);
+template <class COLOR24>
+void Nv12ToColor24Planar(uint8_t *dpNv12, int nNv12Pitch, uint8_t *dpBgrp, int nBgrpPitch, int nWidth, int nHeight, int nDstHeight, int iMatrix = 0, CUstream stream = 0);
+template <class COLOR24>
+void P016ToColor24(uint8_t *dpP016, int nP016Pitch, uint8_t *dpBgra, int nBgraPitch, int nWidth, int nHeight, int iMatrix = 4, CUstream stream = 0);
+template <class COLOR24>
+void P016ToColor24Planar(uint8_t *dpP016, int nP016Pitch, uint8_t *dpRGBP, int nRGBPPitch, int nWidth, int nHeight, int nDstHeight, int iMatrix = 4, CUstream stream = 0);
+template <class COLOR24>
+void YUV444ToColor24(uint8_t *dpYUV444, int nPitch, uint8_t *dpRGB, int nRGBPitch, int nWidth, int nHeight, int iMatrix = 0, CUstream stream = 0);
+template <class COLOR24>
+void YUV444ToColor24Planar(uint8_t *dpYUV444, int nPitch, uint8_t *dpRGBP, int nRGBPPitch, int nWidth, int nHeight, int nDstHeight, int iMatrix = 0, CUstream stream = 0);
+template <class COLOR24>
+void YUV444P16ToColor24(uint8_t *dpYUV444, int nPitch, uint8_t *dpRGB, int nRGBPitch, int nWidth, int nHeight, int iMatrix = 4, CUstream stream = 0);
+template <class COLOR24>
+void YUV444P16ToColor24Planar(uint8_t *dpYUV444, int nPitch, uint8_t *dpRGBP, int nRGBPPitch, int nWidth, int nHeight, int nDstHeight, int iMatrix = 4, CUstream stream = 0);
+template <class COLOR24>
+void Nv16ToColor24(uint8_t *dpNv16, int nNv16Pitch, uint8_t *dpBgra, int nBgraPitch, int nWidth, int nSurfaceHeight, int nHeight, int iMatrix = 0, CUstream stream = 0);
+template <class COLOR24>
+void Nv16ToColor24Planar(uint8_t *dpNv16, int nNv16Pitch, uint8_t *dpBgrp, int nBgrpPitch, int nWidth, int nHeight, int nDstHeight, int iMatrix = 0, CUstream stream = 0);
+template <class COLOR24>
+void P216ToColor24(uint8_t *dpP216, int nP216Pitch, uint8_t *dpBgra, int nBgraPitch, int nWidth, int nSurfaceHeight, int nHeight, int iMatrix = 4, CUstream stream = 0);
+template <class COLOR24>
+void P216ToColor24Planar(uint8_t *dpP216, int nP216Pitch, uint8_t *dpRGBP, int nRGBPPitch, int nWidth, int nHeight, int nDstHeight, int iMatrix = 4, CUstream stream = 0);
 
 void Bgra64ToP016(uint8_t *dpBgra, int nBgraPitch, uint8_t *dpP016, int nP016Pitch, int nWidth, int nHeight, int iMatrix = 4);
 

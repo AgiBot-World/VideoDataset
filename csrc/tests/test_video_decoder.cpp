@@ -20,7 +20,8 @@ public:
 
     VideoFixture() {
         const auto timestamp =
-            duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+                .count();
         video_path = fs::temp_directory_path() / std::to_string(timestamp) / "test_video.mp4";
 
         if (!fs::exists(video_path.parent_path())) {
@@ -59,12 +60,11 @@ public:
 };
 
 TEST_CASE_METHOD(VideoFixture, "VideoDecoder.decode", "[VideoDecoder]") {
-    py::scoped_interpreter guard{};
-    VideoDecoder(0, "h265").decode(video_path, 0);
+    pybind11::scoped_interpreter guard{};
     auto frames = VideoDecoder(0, "h265").decodeToNps(video_path, {0, 3, 6, 9});
     REQUIRE(frames.size() == 4);
     auto np_frame = VideoDecoder(0, "h265").decodeToNp(video_path, 9);
-    REQUIRE(np_frame.ndim() == 2);
+    REQUIRE(np_frame.ndim() == 3);
     auto tensor_frame = VideoDecoder(0, "h265").decodeToTensor(video_path, 9);
-    REQUIRE(tensor_frame.dim() == 2);
+    REQUIRE(tensor_frame.dim() == 3);
 }

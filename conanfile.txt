@@ -1,5 +1,4 @@
 [requires]
-dlpack/0.8
 pybind11/2.13.6
 catch2/3.8.1
 

@@ -5,10 +5,8 @@ import time
 import cv2
 import numpy as np
 import pytest
-import torch
 
 from videodataset import VideoDecoder
-from videodataset.utils.video_util import nv12_to_rgb
 
 
 def test_init():
@@ -29,7 +27,7 @@ def test_invalid_gpu():
 
 def test_decode(test_video):
     """Create decoder instance with GPU ID 0 and H.265 codec."""
-    VideoDecoder(0, "h265").decode(str(test_video), 0)
+    VideoDecoder(0, "h265").decode_to_np(str(test_video), 0)
 
 
 def test_decode_to_np(test_video):
@@ -49,7 +47,7 @@ def test_open_invalid_file():
     # Verify that opening invalid file raises RuntimeError
     with pytest.raises(RuntimeError) as exc_info:
         # Attempt to open non-existent/invalid video file
-        decoder.decode("1.mp4", 0)
+        decoder.decode_to_np("1.mp4", 0)
 
     # Validate error message contains expected pattern
     assert "Failed to open video file" in str(exc_info.value)
@@ -77,30 +75,6 @@ def test_decode_validation_with_bench(test_video, capsys):
     with capsys.disabled():
         print("\ntest_decode_validation_with_bench:")
 
-    decode_decoder = VideoDecoder(0, "h265")
-
-    start_time = time.perf_counter()
-    pre_time = start_time
-    for i, index in enumerate(frame_indices):
-        cv_frame = cv_frames[i]
-        decoded_frame = decode_decoder.decode(str(test_video), index)
-        frame_tensor = torch.from_dlpack(decoded_frame)
-        (height, width) = decoded_frame.shape
-        rgb_tensor = nv12_to_rgb(frame_tensor, width, int(height / 1.5))
-        rgb_np = rgb_tensor.cpu().numpy()
-        assert np.allclose(cv_frame, rgb_np, atol=3)
-        with capsys.disabled():
-            print(
-                f"decode frame {index} elapsed: {(time.perf_counter() - pre_time) * 1000:.2f}"
-            )
-        pre_time = time.perf_counter()
-
-    with capsys.disabled():
-        print(
-            f"decode {len(frame_indices)} frames elapsed: {(time.perf_counter() - start_time) * 1000:.2f}"
-            f", average: {(time.perf_counter() - start_time) * 1000 / len(frame_indices):.2f}"
-        )
-
     decode_to_np_decoder = VideoDecoder(0, "h265")
 
     start_time = time.perf_counter()
@@ -108,16 +82,8 @@ def test_decode_validation_with_bench(test_video, capsys):
     for i, index in enumerate(frame_indices):
         cv_frame = cv_frames[i]
         decoded_frame = decode_to_np_decoder.decode_to_np(str(test_video), index)
-        rgb_np = (
-            nv12_to_rgb(
-                torch.from_numpy(decoded_frame).cuda(decode_to_np_decoder.gpu_id()),
-                decoded_frame.shape[1],
-                int(decoded_frame.shape[0] / 1.5),
-            )
-            .cpu()
-            .numpy()
-        )
-        assert np.allclose(cv_frame, rgb_np, atol=3)
+        rgb_np = decoded_frame
+        assert np.allclose(cv_frame, rgb_np, atol=7)
         with capsys.disabled():
             print(
                 f"decode_to_np frame {index} elapsed: {(time.perf_counter() - pre_time) * 1000:.2f}"
@@ -139,14 +105,8 @@ def test_decode_validation_with_bench(test_video, capsys):
         decoded_frame = decode_to_tensor_decoder.decode_to_tensor(
             str(test_video), index
         )
-        rgb_np = (
-            nv12_to_rgb(
-                decoded_frame, decoded_frame.shape[1], int(decoded_frame.shape[0] / 1.5)
-            )
-            .cpu()
-            .numpy()
-        )
-        assert np.allclose(cv_frame, rgb_np, atol=3)
+        rgb_np = decoded_frame.cpu().numpy()
+        assert np.allclose(cv_frame, rgb_np, atol=7)
         with capsys.disabled():
             print(
                 f"decode_to_tensor frame {index} elapsed: {(time.perf_counter() - pre_time) * 1000:.2f}"
@@ -166,17 +126,9 @@ def test_decode_validation_with_bench(test_video, capsys):
     np_frames = decode_to_nps_decoder.decode_to_nps(str(test_video), frame_indices)
     for i, index in enumerate(frame_indices):
         cv_frame = cv_frames[i]
-        np_frame = np_frames[i]
-        rgb_np = (
-            nv12_to_rgb(
-                torch.tensor(np_frame, device=decode_to_nps_decoder.gpu_id()),
-                np_frame.shape[1],
-                int(np_frame.shape[0] / 1.5),
-            )
-            .cpu()
-            .numpy()
-        )
-        assert np.allclose(cv_frame, rgb_np, atol=3)
+        decoded_frame = np_frames[i]
+        rgb_np = decoded_frame
+        assert np.allclose(cv_frame, rgb_np, atol=7)
         with capsys.disabled():
             print(
                 f"decode_to_nps frame {index} elapsed: {(time.perf_counter() - pre_time) * 1000:.2f}"

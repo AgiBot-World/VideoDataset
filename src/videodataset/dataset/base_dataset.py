@@ -6,7 +6,6 @@ from pathlib import Path
 import torch
 
 from videodataset import VideoDecoder
-from videodataset.utils.video_util import nv12_to_rgb
 
 logger = logging.getLogger(__name__)
 
@@ -66,12 +65,10 @@ class BaseVideoDataset:
 
         rgb_tensors = []
         for np_frame in decoded_frames:
-            rgb_tensor = nv12_to_rgb(
-                torch.from_numpy(np_frame).cuda(decoder.gpu_id()),
-                np_frame.shape[1],
-                int(np_frame.shape[0] / 1.5),
+            rgb_tensor = torch.from_numpy(np_frame)
+            rgb_tensors.append(
+                rgb_tensor.cuda(decoder.gpu_id()) if not to_cpu else rgb_tensor
             )
-            rgb_tensors.append(rgb_tensor if not to_cpu else rgb_tensor.cpu())
 
         return rgb_tensors
 
@@ -87,12 +84,4 @@ class BaseVideoDataset:
         the tensor to the CPU.
         """
         decoded_frame = decoder.decode_to_tensor(str(video_path), frame_idx)
-        rgb_tensor = nv12_to_rgb(
-            decoded_frame,
-            decoded_frame.shape[1],
-            int(decoded_frame.shape[0] / 1.5),
-        )
-
-        if to_cpu:
-            rgb_tensor = rgb_tensor.cpu()
-        return rgb_tensor
+        return decoded_frame.cpu() if to_cpu else decoded_frame

@@ -26,17 +26,20 @@
  */
 
 #include <array>
+#include <cstdint>
 #include <iostream>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <vector>
+#include <mutex>
 
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
 #include "core/NvDecoder.h"
+#include "core/ColorSpace.h"
 #include "core/Logger.h"
 
 // Global logger instance initialization
@@ -477,6 +480,10 @@ int NvDecoder::ReconfigureDecoder(CUVIDEOFORMAT *pVideoFormat)
     START_TIMER
     CUDA_DRVAPI_CALL(cuCtxPushCurrent(m_cuContext));
     NVDEC_API_CALL(cuvidReconfigureDecoder(m_hDecoder, &reconfigParams));
+    if (!m_bUseDeviceFrame)
+    {
+        CUDA_DRVAPI_CALL(cuMemAlloc((CUdeviceptr *)&m_dpScratchFrame, GetOutputFrameSize()));
+    }
     CUDA_DRVAPI_CALL(cuCtxPopCurrent(NULL));
     STOP_TIMER("Session Reconfigure Time: ");
 
@@ -633,45 +640,19 @@ int NvDecoder::HandlePictureDisplay(CUVIDPARSERDISPINFO *pDispInfo) {
                 }
                 else
                 {
-                    CUDA_DRVAPI_CALL(cuMemAlloc((CUdeviceptr *)&pFrame, GetFrameSize()));
+                    CUDA_DRVAPI_CALL(cuMemAlloc((CUdeviceptr *)&pFrame, GetOutputFrameSize()));
                 }
             }
             else
             {
-                pFrame = new uint8_t[GetFrameSize()];
+                pFrame = new uint8_t[GetOutputFrameSize()];
             }
             m_vpFrame.push_back(pFrame);
         }
         pDecodedFrame = m_vpFrame[m_nDecodedFrame - 1];
     }
 
-    // Copy luma plane
-    CUDA_MEMCPY2D m = { 0 };
-    m.srcMemoryType = CU_MEMORYTYPE_DEVICE;
-    m.srcDevice = dpSrcFrame;
-    m.srcPitch = nSrcPitch;
-    m.dstMemoryType = m_bUseDeviceFrame ? CU_MEMORYTYPE_DEVICE : CU_MEMORYTYPE_HOST;
-    m.dstDevice = (CUdeviceptr)(m.dstHost = pDecodedFrame);
-    m.dstPitch = m_nDeviceFramePitch ? m_nDeviceFramePitch : GetWidth() * m_nBPP;
-    m.WidthInBytes = GetWidth() * m_nBPP;
-    m.Height = m_nLumaHeight;
-    CUDA_DRVAPI_CALL(cuMemcpy2DAsync(&m, m_cuvidStream));
-
-    // Copy chroma plane
-    // NVDEC output has luma height aligned by 2. Adjust chroma offset by aligning height
-    m.srcDevice = (CUdeviceptr)((uint8_t *)dpSrcFrame + m.srcPitch * ((m_nSurfaceHeight + 1) & ~1));
-    m.dstDevice = (CUdeviceptr)(m.dstHost = pDecodedFrame + m.dstPitch * m_nLumaHeight);
-    m.Height = m_nChromaHeight;
-    CUDA_DRVAPI_CALL(cuMemcpy2DAsync(&m, m_cuvidStream));
-
-    if (m_nNumChromaPlanes == 2)
-    {
-        m.srcDevice = (CUdeviceptr)((uint8_t *)dpSrcFrame + m.srcPitch * ((m_nSurfaceHeight + 1) & ~1) * 2);
-        m.dstDevice = (CUdeviceptr)(m.dstHost = pDecodedFrame + m.dstPitch * m_nLumaHeight * 2);
-        m.Height = m_nChromaHeight;
-        CUDA_DRVAPI_CALL(cuMemcpy2DAsync(&m, m_cuvidStream));
-    }
-
+    GenerateOutput(dpSrcFrame, nSrcPitch, pDecodedFrame);
 
     CUDA_DRVAPI_CALL(cuStreamSynchronize(m_cuvidStream));
     CUDA_DRVAPI_CALL(cuCtxPopCurrent(NULL));
@@ -724,12 +705,146 @@ int NvDecoder::GetSEIMessage(CUVIDSEIMESSAGEINFO *pSEIMessageInfo)
     return 1;
 }
 
-NvDecoder::NvDecoder(CUcontext cuContext, bool bUseDeviceFrame, cudaVideoCodec eCodec, bool bLowLatency,
+
+void NvDecoder::GenerateNativeOutput(CUdeviceptr dpSrcFrame, unsigned int nSrcPitch, uint8_t* pDecodedFrame)
+{
+    // Copy luma plane
+    CUDA_MEMCPY2D m = { 0 };
+    m.srcMemoryType = CU_MEMORYTYPE_DEVICE;
+    m.srcDevice = dpSrcFrame;
+    m.srcPitch = nSrcPitch;
+    m.dstMemoryType = m_bUseDeviceFrame ? CU_MEMORYTYPE_DEVICE : CU_MEMORYTYPE_HOST;
+    m.dstDevice = (CUdeviceptr)(m.dstHost = pDecodedFrame);
+    m.dstPitch = m_nDeviceFramePitch ? m_nDeviceFramePitch : GetWidth() * m_nBPP;
+    m.WidthInBytes = GetWidth() * m_nBPP;
+    m.Height = m_nLumaHeight;
+    CUDA_DRVAPI_CALL(cuMemcpy2DAsync(&m, m_cuvidStream));
+
+    // Copy chroma plane
+    // NVDEC output has luma height aligned by 2. Adjust chroma offset by aligning height
+    m.srcDevice = (CUdeviceptr)((uint8_t*)dpSrcFrame + m.srcPitch * ((m_nSurfaceHeight + 1) & ~1));
+    m.dstDevice = (CUdeviceptr)(m.dstHost = pDecodedFrame + m.dstPitch * m_nLumaHeight);
+    m.Height = m_nChromaHeight;
+    CUDA_DRVAPI_CALL(cuMemcpy2DAsync(&m, m_cuvidStream));
+
+    if (m_nNumChromaPlanes == 2)
+    {
+        m.srcDevice = (CUdeviceptr)((uint8_t*)dpSrcFrame + m.srcPitch * ((m_nSurfaceHeight + 1) & ~1) * 2);
+        m.dstDevice = (CUdeviceptr)(m.dstHost = pDecodedFrame + m.dstPitch * m_nLumaHeight * 2);
+        m.Height = m_nChromaHeight;
+        CUDA_DRVAPI_CALL(cuMemcpy2DAsync(&m, m_cuvidStream));
+    }
+}
+
+void NvDecoder::GenerateRGBOutput(CUdeviceptr dpSrcFrame, unsigned int nSrcPitch, uint8_t* pDecodedFrame)
+{
+    constexpr uint32_t perPixelComponents = 3;
+    auto matrixCoefficients = GetVideoFormatInfo().video_signal_description.matrix_coefficients;
+    auto outputFormat = GetOutputFormat();
+    switch (outputFormat)
+    {
+        case cudaVideoSurfaceFormat_NV12:
+            Nv12ToColor24<RGB24>((uint8_t*)dpSrcFrame, nSrcPitch, pDecodedFrame,
+                perPixelComponents * GetWidth(), GetWidth(), m_nSurfaceHeight, matrixCoefficients, m_cuvidStream);
+            break;
+        case cudaVideoSurfaceFormat_P016:
+            P016ToColor24<RGB24>((uint8_t*)dpSrcFrame, nSrcPitch, pDecodedFrame,
+                perPixelComponents * GetWidth(), GetWidth(), m_nSurfaceHeight, matrixCoefficients, m_cuvidStream);
+            break;
+        case cudaVideoSurfaceFormat_YUV444:
+            YUV444ToColor24<RGB24>((uint8_t*)dpSrcFrame, nSrcPitch, pDecodedFrame,
+                perPixelComponents * GetWidth(), GetWidth(), m_nSurfaceHeight, matrixCoefficients, m_cuvidStream);
+            break;
+        case cudaVideoSurfaceFormat_YUV444_16Bit:
+            YUV444P16ToColor24<RGB24>((uint8_t*)dpSrcFrame, nSrcPitch, pDecodedFrame,
+                perPixelComponents * GetWidth(), GetWidth(), m_nSurfaceHeight, matrixCoefficients, m_cuvidStream);
+            break;
+        case cudaVideoSurfaceFormat_NV16:
+            Nv16ToColor24<RGB24>((uint8_t*)dpSrcFrame, nSrcPitch, pDecodedFrame,
+                perPixelComponents * GetWidth(), GetWidth(), m_nSurfaceHeight, GetHeight(), matrixCoefficients, m_cuvidStream);
+            break;
+        case cudaVideoSurfaceFormat_P216:
+            P216ToColor24<RGB24>((uint8_t*)dpSrcFrame, nSrcPitch, pDecodedFrame,
+                perPixelComponents * GetWidth(), GetWidth(), m_nSurfaceHeight, GetHeight(), matrixCoefficients, m_cuvidStream);
+            break;
+        default:
+            break;
+    }
+}
+
+void NvDecoder::GenerateRGBPOutput(CUdeviceptr dpSrcFrame, unsigned int nSrcPitch, uint8_t* pDecodedFrame)
+{
+    auto matrixCoefficients = GetVideoFormatInfo().video_signal_description.matrix_coefficients;
+    auto outputFormat = GetOutputFormat();
+    switch (outputFormat)
+    {
+        case cudaVideoSurfaceFormat_NV12:
+            Nv12ToColor24Planar<RGB24>((uint8_t*)dpSrcFrame, nSrcPitch, pDecodedFrame,
+                GetWidth(), GetWidth(), m_nSurfaceHeight, GetHeight(), matrixCoefficients, m_cuvidStream);
+            break;
+        case cudaVideoSurfaceFormat_P016:
+            P016ToColor24Planar<RGB24>((uint8_t*)dpSrcFrame, nSrcPitch, pDecodedFrame,
+                GetWidth(), GetWidth(), m_nSurfaceHeight, GetHeight(), matrixCoefficients, m_cuvidStream);
+            break;
+        case cudaVideoSurfaceFormat_YUV444:
+            YUV444ToColor24Planar<RGB24>((uint8_t*)dpSrcFrame, nSrcPitch, pDecodedFrame,
+                GetWidth(), GetWidth(), m_nSurfaceHeight, GetHeight(), matrixCoefficients, m_cuvidStream);
+            break;
+        case cudaVideoSurfaceFormat_YUV444_16Bit:
+            YUV444P16ToColor24Planar<RGB24>((uint8_t*)dpSrcFrame, nSrcPitch, pDecodedFrame,
+                GetWidth(), GetWidth(), m_nSurfaceHeight, GetHeight(), matrixCoefficients, m_cuvidStream);
+            break;
+        case cudaVideoSurfaceFormat_NV16:
+            Nv16ToColor24Planar<RGB24>((uint8_t*)dpSrcFrame, nSrcPitch, pDecodedFrame,
+                GetWidth(), GetWidth(), m_nSurfaceHeight, GetHeight(), matrixCoefficients, m_cuvidStream);
+            break;
+        case cudaVideoSurfaceFormat_P216:
+            P216ToColor24Planar<RGB24>((uint8_t*)dpSrcFrame, nSrcPitch, pDecodedFrame,
+                GetWidth(), GetWidth(), m_nSurfaceHeight, GetHeight(), matrixCoefficients, m_cuvidStream);
+            break;
+        default:
+            break;
+    }
+
+}
+
+void NvDecoder::GenerateOutput(CUdeviceptr dpSrcFrame, unsigned int nSrcPitch, uint8_t* pDecodedFrame)
+{
+    switch (m_eUserOutputColorType)
+    {
+        case OutputColorType::NATIVE:
+            GenerateNativeOutput(dpSrcFrame, nSrcPitch, pDecodedFrame);
+            return;
+        case OutputColorType::RGB:
+        {
+            auto deviceFrame = m_bUseDeviceFrame ? pDecodedFrame : (uint8_t*)m_dpScratchFrame;
+            GenerateRGBOutput(dpSrcFrame, nSrcPitch, deviceFrame);
+            break;
+        }
+        case OutputColorType::RGBP:
+        {
+            auto deviceFrame = m_bUseDeviceFrame ? pDecodedFrame : (uint8_t*)m_dpScratchFrame;
+            GenerateRGBPOutput(dpSrcFrame, nSrcPitch, deviceFrame);
+            break;
+        }
+        default:
+            // Not expected
+            break;
+    }
+    if (!m_bUseDeviceFrame)
+    {
+        // copy the output to host
+        cuMemcpyDtoH(pDecodedFrame, m_dpScratchFrame, GetOutputFrameSize());
+    }
+}
+
+NvDecoder::NvDecoder(int32_t gpuId, CUcontext cuContext, bool bUseDeviceFrame, cudaVideoCodec eCodec, bool bLowLatency,
     bool bDeviceFramePitched, const Rect *pCropRect, const Dim *pResizeDim, bool extract_user_SEI_Message,
-    int maxWidth, int maxHeight, unsigned int clkRate, bool force_zero_latency) :
+    int maxWidth, int maxHeight, unsigned int clkRate, bool force_zero_latency, OutputColorType eOutputColorType) :
+    m_gpuId(gpuId),
     m_cuContext(cuContext), m_bUseDeviceFrame(bUseDeviceFrame), m_eCodec(eCodec), m_bDeviceFramePitched(bDeviceFramePitched),
     m_bExtractSEIMessage(extract_user_SEI_Message), m_nMaxWidth (maxWidth), m_nMaxHeight(maxHeight),
-    m_bForce_zero_latency(force_zero_latency)
+    m_bForce_zero_latency(force_zero_latency), m_eUserOutputColorType(eOutputColorType)
 {
     if (pCropRect) m_cropRect = *pCropRect;
     if (pResizeDim) m_resizeDim = *pResizeDim;
@@ -795,6 +910,12 @@ NvDecoder::~NvDecoder() {
             delete[] pFrame;
         }
     }
+
+    if (!m_bUseDeviceFrame)
+    {
+        cuMemFree((CUdeviceptr)m_dpScratchFrame);
+    }
+
     cuCtxPopCurrent(NULL);
 
     cuvidCtxLockDestroy(m_ctxLock);
