@@ -11,7 +11,7 @@
       "source.organizeImports.ruff": "explicit"
     },
     "editor.defaultFormatter": "charliermarsh.ruff",
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": true
   },
   "cSpell.words": [
     "autofix",
@@ -67,6 +67,7 @@
     "**/*.egg-info": true,
     "**/.coverage": true,
     "**/.mypy_cache": true,
+    "**/.pdm-build": true,
     "**/.pytest_cache": true,
     "**/.ruff_cache": true,
     "**/.venv": true,

@@ -1,4 +1,4 @@
-# VideoDataset API Reference
+# API Reference
 
 ## Core Modules
 

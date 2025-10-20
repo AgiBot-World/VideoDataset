@@ -1,0 +1,28 @@
+_commit: v0.0.5
+_src_path: https://code.agibot.com/ai-platform/agibot-python.git
+author_email: genie@agibot.com
+author_name: genie
+container_registry_host: ''
+copyright_holder: genie
+copyright_license: MIT License
+copyright_year: '2025'
+coverage_threshold: 80
+default_py: '3.10'
+development_status: Alpha
+env_tool: pipenv
+max_py: '3.14'
+min_py: '3.10'
+module_name: videodataset
+organization_name: genie
+package_name: videodataset
+page_host: code.agibot.com
+platforms:
+- linux
+project_description: Video Dataset with NvCodec.
+project_keywords: videodataset
+project_name: VideoDataset
+readme_content: '## A multiline README content here'
+repo_host: code.agibot.com
+repo_name: videodataset
+repo_namespace: ai-platform
+repo_platform: gitlab-self-managed

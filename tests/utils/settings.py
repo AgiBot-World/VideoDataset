@@ -70,6 +70,7 @@ class TestDatasetSettings(BaseSettings):
         return self
 
     def ping_huggingface_repo(self, repo_id: str, timeout: int = 5):
+        """Ping huggingface repo to check if it exists and is accessible."""
         url = f"https://huggingface.co/api/datasets/{repo_id}"
         request = urllib.request.Request(url)
         with urllib.request.urlopen(request, timeout=timeout) as response:

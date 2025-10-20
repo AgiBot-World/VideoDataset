@@ -24,12 +24,6 @@ class LeRobotVideoDataset(LeRobotDataset, BaseVideoDataset):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         BaseVideoDataset.__init__(self)
-        logger.info(
-            "Initialized %s with args=%s, kwargs=%s",
-            self.__class__.__name__,
-            args,
-            kwargs,
-        )
 
     def _query_videos(
         self, query_timestamps: dict[str, list[float]], ep_idx: int

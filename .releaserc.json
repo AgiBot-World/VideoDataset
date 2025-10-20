@@ -42,7 +42,7 @@
                     },
                     {
                         "type": "revert",
-                        "release": false
+                        "release": "patch"
                     },
                     {
                         "type": "style",
@@ -51,6 +51,18 @@
                     {
                         "type": "test",
                         "release": false
+                    },
+                    {
+                        "scope": "*major-release*",
+                        "release": "major"
+                    },
+                    {
+                        "scope": "*minor-release*",
+                        "release": "minor"
+                    },
+                    {
+                        "scope": "*patch-release*",
+                        "release": "patch"
                     },
                     {
                         "scope": "*no-release*",
@@ -65,6 +77,22 @@
                 "presetConfig": {
                     "types": [
                         {
+                            "type": "build",
+                            "section": "Build"
+                        },
+                        {
+                            "type": "chore",
+                            "section": "Chores"
+                        },
+                        {
+                            "type": "ci",
+                            "section": "Continuous Integration"
+                        },
+                        {
+                            "type": "docs",
+                            "section": "Documentation"
+                        },
+                        {
                             "type": "feat",
                             "section": "Features"
                         },
@@ -73,55 +101,35 @@
                             "section": "Bug Fixes"
                         },
                         {
-                            "type": "build",
-                            "section": "Build",
-                            "hidden": true
-                        },
-                        {
-                            "type": "chore",
-                            "section": "Chores",
-                            "hidden": true
-                        },
-                        {
-                            "type": "ci",
-                            "section": "Continuous Integration",
-                            "hidden": true
-                        },
-                        {
-                            "type": "docs",
-                            "section": "Documentation",
-                            "hidden": true
-                        },
-                        {
                             "type": "perf",
-                            "section": "Performance",
-                            "hidden": true
+                            "section": "Performance"
                         },
                         {
                             "type": "refactor",
-                            "section": "Refactor",
-                            "hidden": true
+                            "section": "Refactor"
                         },
                         {
                             "type": "revert",
-                            "section": "Reverts",
-                            "hidden": true
+                            "section": "Reverts"
                         },
                         {
                             "type": "style",
-                            "section": "Styles",
-                            "hidden": true
+                            "section": "Styles"
                         },
                         {
                             "type": "test",
-                            "section": "Tests",
-                            "hidden": true
+                            "section": "Tests"
                         }
                     ]
                 }
             }
         ],
-        "@semantic-release/gitlab"
+        [
+            "@semantic-release/gitlab",
+            {
+                "gitlabUrl": "https://code.agibot.com"
+            }
+        ]
     ],
     "preset": "conventionalcommits"
 }

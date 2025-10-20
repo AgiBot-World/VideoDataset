@@ -5,10 +5,10 @@ stages:
 default:
   before_script:
     - env | sort
+  interruptible: true
+  image: registry.agibot.com/ai-platform/agibot-forge/dev:25.04-latest
   retry:
     max: 2
     when: runner_system_failure
-  image: ${CI_REGISTRY_IMAGE}/agibot-forge/dev:25.04-latest
-
 include:
   - local: .gitlab/workflows/**.yml

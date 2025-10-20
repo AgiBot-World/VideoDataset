@@ -11,7 +11,7 @@ import os
 import platform
 
 
-def _setup_environment():
+def _setup_environment() -> None:
     """Setup environment variables and paths"""
     if platform.system() == "Linux":
         # Linux: Update LD_LIBRARY_PATH
@@ -20,10 +20,10 @@ def _setup_environment():
         # Add torch library path for _decoder extension
         try:
             torch = importlib.import_module("torch")
-            lib_paths.append(os.path.dirname(torch.__file__) + "/lib")
-        except ImportError:
+            lib_paths.append(torch.__path__[0] + "/lib")
+        except ImportError as e:
             err_msg = "Unable to import torch. Please ensure torch is installed."
-            raise ImportError(err_msg)
+            raise ImportError(err_msg) from e
 
         if "LD_LIBRARY_PATH" in os.environ:
             lib_paths.extend(os.environ["LD_LIBRARY_PATH"].split(":"))
@@ -33,6 +33,6 @@ def _setup_environment():
 
 _setup_environment()
 
-from videodataset._decoder import VideoDecoder
+from videodataset._decoder import VideoDecoder  # noqa: E402
 
 __all__ = ["VideoDecoder"]

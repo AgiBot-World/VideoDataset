@@ -3,7 +3,6 @@ default_install_hook_types:
   - post-merge
   - post-rewrite
   - pre-push
-  - pre-commit
 default_stages:
   - manual
   - pre-push
@@ -61,31 +60,25 @@ repos:
           )
   - repo: local
     hooks:
-      - id: ruff
-        name: ruff
-        entry: ruff check --force-exclude --fix
+      - id: mypy
+        name: mypy
+        entry: pipenv run python -m mypy
         language: system
         types_or:
           - python
           - pyi
         require_serial: true
-        stages:
-          - pre-commit
-          - pre-push
+      - id: ruff
+        name: ruff
+        entry: ruff check --force-exclude
+        language: system
+        types_or:
+          - python
+          - pyi
+        require_serial: true
       - id: ruff-format
         name: ruff-format
         entry: ruff format --force-exclude
-        language: system
-        types_or:
-          - python
-          - pyi
-        require_serial: true
-        stages:
-          - pre-commit
-          - pre-push
-      - id: mypy
-        name: mypy
-        entry: mypy
         language: system
         types_or:
           - python
@@ -104,3 +97,20 @@ repos:
         language: python
         types:
           - text
+      - id: check-jsonschema
+        name: check-jsonschema
+        entry: make check-jsonschema
+        language: python
+        files: (?x)^(
+          \.github/workflows/[^/]+|
+          \.gitlab-ci\.yml|
+          \.gitlab/workflows/[^/]+|
+          \.readthedocs\.yaml|
+          \.renovaterc\.json
+          )$
+        pass_filenames: false
+      - id: forbidden-files
+        name: forbidden files
+        entry: found Copier update rejection files; review them and remove them
+        language: fail
+        files: \.rej$

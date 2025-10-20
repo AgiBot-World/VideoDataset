@@ -4,14 +4,22 @@
 
 Video Dataset with NvCodec.
 
-[![Documentation](https://img.shields.io/badge/Documentation-sphinx-blue)](https://pages.code.agibot.com/videodataset)
-[![CI](https://code.agibot.com/ai-platform/videodataset/badges/main/pipeline.svg)](https://code.agibot.com/ai-platform/videodataset/-/commits/main)
-[![Release](https://code.agibot.com/ai-platform/videodataset/-/badges/release.svg)](https://code.agibot.com/ai-platform/videodataset/-/releases)
+[![pipeline status](https://code.agibot.com/ai-platform/videodataset/badges/main/pipeline.svg)](https://code.agibot.com/ai-platform/videodataset/-/commits/main)
+[![coverage report](https://code.agibot.com/ai-platform/videodataset/badges/main/coverage.svg)](https://code.agibot.com/ai-platform/videodataset/-/commits/main)
+[![Latest Release](https://code.agibot.com/ai-platform/videodataset/-/badges/release.svg)](https://code.agibot.com/ai-platform/videodataset/-/releases)
+[![GitLab](https://img.shields.io/gitlab/license/ai-platform/videodataset?gitlab_url=https%3A%2F%2Fcode.agibot.com)](https://code.agibot.com/ai-platform/videodataset/-/blob/main/LICENSE)
 
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
-[![clang-format](https://img.shields.io/badge/clang--format-enabled-blue)](https://github.com/pre-commit/mirrors-clang-format)
-[![cmake-format](https://img.shields.io/badge/cmake--format-enabled-blue)](https://github.com/cheshirekow/cmake-format-precommit)
-[![markdownlint](https://img.shields.io/badge/markdownlint-enabled-blue)](https://github.com/igorshubovych/markdownlint-cli)
+[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](https://conventionalcommits.org)
+[![Copier](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/copier-org/copier/master/img/badge/badge-grayscale-inverted-border-orange.json)](https://github.com/copier-org/copier)
+[![Serious Scaffold Python](https://img.shields.io/endpoint?url=https://serious-scaffold.github.io/ss-python/_static/badges/logo.json)](https://serious-scaffold.github.io/ss-python)
+
+> [!WARNING]
+> _VideoDataset_ is in the **Alpha** phase.
+> Frequent changes and instability should be anticipated.
+> Any feedback, comments, suggestions and contributions are welcome!
 
 ## Overview
 

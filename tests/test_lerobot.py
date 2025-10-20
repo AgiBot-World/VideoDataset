@@ -11,6 +11,7 @@ import pytest
     [("ucsd_kitchen_video_dataset", "ucsd_kitchen_dataset")],
 )
 def test_lerobot(video_dataset, lerobot_dataset, request):
+    """Test if the LERoBot dataset is consistent with the original video dataset."""
     video_dataset = request.getfixturevalue(video_dataset)
     lerobot_dataset = request.getfixturevalue(lerobot_dataset)
 
