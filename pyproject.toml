@@ -40,7 +40,7 @@ dependencies = [
     "torch>=2.5.0a0",
 ]
 optional-dependencies.lerobot = [
-    "lerobot>=0.3.3",
+    "lerobot==0.3.3",
 ]
 urls.documentation = "https://ai-platform.code.agibot.com/videodataset"
 urls.issue = "https://code.agibot.com/ai-platform/videodataset/-/issues"
