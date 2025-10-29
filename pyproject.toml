@@ -91,6 +91,7 @@ sdist.include = [
 [tool.scikit-build.cmake.define]
 BUILD_TESTING = "OFF"
 CMAKE_BUILD_TYPE = "Release"
+CONAN_INSTALL_ARGS = "--build=missing;-c tools.build:skip_test=true"
 
 [tool.cibuildwheel]
 build-verbosity = 1
