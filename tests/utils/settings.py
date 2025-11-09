@@ -25,9 +25,7 @@ class TestDatasetSettings(BaseSettings):
 
     # Used for loading from a file path
     lerobot_datasets_root_paths: dict[str, Path] = {
-        "ucsd_kitchen_dataset": Path(
-            "/mnt/public/huxingyu/lerobot/ucsd_kitchen_dataset"
-        ),
+        "ucsd_kitchen_dataset": Path("/mnt/public/fengli/lerobot/ucsd_kitchen_dataset"),
         "aidea_world": Path(
             "/mnt/public/qiuying/aidea-world-h265-4/alpha/agibotworld/task_327"
         ),

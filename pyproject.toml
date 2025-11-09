@@ -36,11 +36,11 @@ dynamic = [
     "version",
 ]
 dependencies = [
-    "numpy<2",
+    "numpy",
     "torch>=2.5.0a0",
 ]
 optional-dependencies.lerobot = [
-    "lerobot==0.3.3",
+    "lerobot==0.4.0",
 ]
 urls.documentation = "https://AgiBot-Genie.github.io/videodataset"
 urls.issue = "https://github.com/AgiBot-Genie/videodataset/issues"
