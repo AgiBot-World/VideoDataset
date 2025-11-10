@@ -1,0 +1,58 @@
+name: cibuildwheel
+
+on:
+  workflow_call:
+    inputs:
+      auto:
+        description: Build wheels for auto archs
+        required: true
+        type: boolean
+      extra:
+        description: Build wheels for aarch64
+        required: true
+        type: boolean
+
+jobs:
+  build_wheels:
+    name: ${{ matrix.os }}, ${{ matrix.arch }}, ${{ matrix.build }} wheels
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-24.04] # renovate: github-runner
+        arch: [aarch64, x86_64]
+        build: [manylinux, musllinux]
+        qemu_arch: [aarch64]
+        include:
+          - {os: macos-13, arch: x86_64, build: macos}
+          - {os: macos-14, arch: arm64, build: macos}
+
+    steps:
+      - uses: actions/checkout@v4
+        if: >
+          inputs.auto && !contains(matrix.qemu_arch, matrix.arch) ||
+          inputs.extra && contains(matrix.qemu_arch, matrix.arch)
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        if: runner.os == 'Linux' && inputs.extra && contains(matrix.qemu_arch, matrix.arch)
+
+      - name: Build wheels
+        if: >
+          inputs.auto && !contains(matrix.qemu_arch, matrix.arch) ||
+          inputs.extra && contains(matrix.qemu_arch, matrix.arch)
+        uses: pypa/cibuildwheel@v2.23.3
+        env:
+          CIBW_ARCHS: ${{ matrix.arch }}
+          CIBW_BUILD: '*${{ matrix.build }}*'
+
+      - name: Upload wheels
+        if: >
+          inputs.auto && !contains(matrix.qemu_arch, matrix.arch) ||
+          inputs.extra && contains(matrix.qemu_arch, matrix.arch)
+        uses: actions/upload-artifact@v4
+        with:
+          name: cibw-${{ matrix.os }}-${{ matrix.build }}-${{ matrix.arch }}
+          path: wheelhouse/*.whl

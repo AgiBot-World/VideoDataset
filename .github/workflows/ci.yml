@@ -1,0 +1,114 @@
+name: CI
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: 3
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --hook-stage manual --all-files
+
+
+  wheels:
+    needs: [pre-commit]
+    uses: ./.github/workflows/reuseable_cibuildwheel.yml
+    secrets: inherit
+    with:
+      auto: true
+      extra: false
+
+
+  codecov:
+    runs-on: ubuntu-24.04
+    needs: [pre-commit]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+
+      - name: Install package
+        run: make dev-test
+
+      - name: Test package
+        run: make test
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+
+  check-docs:
+    runs-on: ubuntu-24.04
+    needs: [pre-commit]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+          key: docs-${{ hashFiles('vcpkg.json') }}
+          restore-keys: docs-${{ hashFiles('vcpkg.json') }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+
+      - name: Checks the docs for broken links
+        run: make dev-test doc-build
+
+
+  pass:
+    if: always()
+    needs:
+      - wheels
+      - codecov
+      - check-docs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Decide whether the needed jobs succeeded or failed
+        uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}
+
+      - name: Approve pr if all jobs succeeded
+        if: contains(github.event.pull_request.labels.*.name, 'auto-approval') && contains(github.actor, '[bot]')
+        uses: hmarr/auto-approve-action@v4

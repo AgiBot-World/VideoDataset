@@ -1,28 +1,28 @@
-_commit: v0.0.5
-_src_path: https://code.agibot.com/ai-platform/agibot-python.git
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v0.8.42
+_src_path: gh:serious-scaffold/ss-pybind11
 author_email: genie@agibot.com
 author_name: genie
-container_registry_host: ''
+codecov_notify_builds: 1
+codecov_threshold: 5%
+compiled: true
 copyright_holder: genie
 copyright_license: MIT License
 copyright_year: '2025'
-coverage_threshold: 80
+create_devcontainer: false
 default_py: '3.10'
-development_status: Alpha
-env_tool: pipenv
-max_py: '3.14'
+docs_type: sphinx
+max_py: '3.13'
 min_py: '3.10'
 module_name: videodataset
 organization_name: genie
-package_name: videodataset
-page_host: code.agibot.com
-platforms:
-- linux
 project_description: Video Dataset with NvCodec.
-project_keywords: videodataset
 project_name: VideoDataset
-readme_content: '## A multiline README content here'
-repo_host: code.agibot.com
+repo_host: github.com
 repo_name: videodataset
-repo_namespace: ai-platform
-repo_platform: gitlab-self-managed
+repo_namespace: AgiBot-Genie
+repo_platform: github
+use_codecov: true
+use_codeql: true
+use_conan: false
+use_cpm: false

@@ -42,9 +42,9 @@ dependencies = [
 optional-dependencies.lerobot = [
     "lerobot==0.3.3",
 ]
-urls.documentation = "https://ai-platform.code.agibot.com/videodataset"
-urls.issue = "https://code.agibot.com/ai-platform/videodataset/-/issues"
-urls.repository = "https://code.agibot.com/ai-platform/videodataset"
+urls.documentation = "https://AgiBot-Genie.github.io/videodataset"
+urls.issue = "https://github.com/AgiBot-Genie/videodataset/issues"
+urls.repository = "https://github.com/AgiBot-Genie/videodataset"
 
 [dependency-groups]
 test = [

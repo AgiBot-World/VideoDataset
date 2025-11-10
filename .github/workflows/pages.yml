@@ -1,0 +1,49 @@
+name: Pages
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+      - beta
+      - alpha
+      - '*.x'
+
+  release:
+    types:
+      - published
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: 3
+
+jobs:
+  pages:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+
+      - name: Build Docs
+        run: make dev-doc
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public

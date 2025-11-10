@@ -63,8 +63,6 @@ exclude_patterns = [
 
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-the-linkcheck-builder
 linkcheck_ignore = [
-    "https://code.agibot.com/ai-platform/videodataset",
-    "https://pages.code.agibot.com/ai-platform/videodataset",
     "https://github.com",
     "https://docs.python.org",
 ]

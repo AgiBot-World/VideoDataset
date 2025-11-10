@@ -124,12 +124,7 @@
                 }
             }
         ],
-        [
-            "@semantic-release/gitlab",
-            {
-                "gitlabUrl": "https://code.agibot.com"
-            }
-        ]
+        "@semantic-release/github"
     ],
     "preset": "conventionalcommits"
 }

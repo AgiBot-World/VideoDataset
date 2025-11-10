@@ -19,7 +19,7 @@ quickstart
 limitation
 benchmark
 reports/index
-Changelog <https://code.agibot.com/ai-platform/videodataset/-/releases>
+Changelog <https://github.com/AgiBot-Genie/videodataset/releases>
 ```
 
 <!-- Disable to show when there is no api generation in the docs -->

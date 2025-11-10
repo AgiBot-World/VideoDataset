@@ -68,13 +68,13 @@ dev: install
 
 # Install standalone tools
 prerequisites:
-	pipx list --short | grep -q "check-jsonschema 0.33.2" || pipx install --force check-jsonschema==0.33.2
+	pipx list --short | grep -q "check-jsonschema 0.34.1" || pipx install --force check-jsonschema==0.34.1
 	pipx list --short | grep -q "codespell 2.4.1" || pipx install --force codespell[toml]==2.4.1
 	pipx list --short | grep -q "pipenv 2025.0.4" || pipx install --force pipenv==2025.0.4
 	pipx list --short | grep -q "pre-commit 4.2.0" || pipx install --force pre-commit==4.2.0
 	pipx list --short | grep -q "pyproject-fmt 2.6.0" || pipx install --force pyproject-fmt==2.6.0
 	pipx list --short | grep -q "ruff 0.12.3" || pipx install --force ruff==0.12.3
-	pipx list --short | grep -q "watchfiles 1.1.0" || pipx install --force watchfiles==1.1.0
+	pipx list --short | grep -q "watchfiles 1.1.1" || pipx install --force watchfiles==1.1.1
 	pipx list --short | grep -q "twine 6.0.1" || pipx install --force twine==6.0.1
 
 ########################################################################################
@@ -103,7 +103,7 @@ codespell:
 
 # Check jsonschema with check-jsonschema.
 check-jsonschema:
-	check-jsonschema --builtin-schema vendor.gitlab-ci --data-transform gitlab-ci --regex-variant nonunicode .gitlab-ci.yml .gitlab/workflows/*.yml
+	check-jsonschema --builtin-schema vendor.github-workflows .github/workflows/*.yml
 	check-jsonschema --builtin-schema vendor.readthedocs .readthedocs.yaml
 	check-jsonschema --builtin-schema vendor.renovate --regex-variant nonunicode .renovaterc.json
 
