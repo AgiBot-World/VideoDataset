@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import random
-
 import numpy as np
 import pytest
 
@@ -17,7 +15,7 @@ def test_lerobot(video_dataset, lerobot_dataset, request):
 
     assert len(video_dataset) == len(lerobot_dataset)
 
-    test_indices = random.sample(range(len(video_dataset)), 10)
+    test_indices = range(30)
     for i in test_indices:
         sample_vt = video_dataset[i]
         sample_lr = lerobot_dataset[i]
