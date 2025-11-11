@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "scikit_build_core.build"
-requires = [ "conan", "mypy", "scikit-build-core", "torch" ]
+requires = [ "conan", "mypy", "numpy>2", "scikit-build-core", "torch<2.9.0" ]
 
 [project]
 name = "videodataset"
@@ -37,7 +37,7 @@ dynamic = [
 ]
 dependencies = [
     "numpy",
-    "torch>=2.5.0a0",
+    "torch>=2.2.1,<2.8.0",
 ]
 optional-dependencies.lerobot = [
     "lerobot==0.4.0",

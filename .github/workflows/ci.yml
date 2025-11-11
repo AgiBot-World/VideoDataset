@@ -17,79 +17,30 @@ env:
   FORCE_COLOR: 3
 
 jobs:
-  pre-commit:
-    runs-on: ubuntu-24.04
+  ci:
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: 3.x
-
-      - uses: pre-commit/action@v3.0.1
-        with:
-          extra_args: --hook-stage manual --all-files
-
+      - run: make dev-test,doc,lint
+      - run: make test
+      - run: make doc
+      - run: make build
 
   wheels:
-    needs: [pre-commit]
     uses: ./.github/workflows/reuseable_cibuildwheel.yml
     secrets: inherit
     with:
       auto: true
       extra: false
 
-
-  codecov:
-    runs-on: ubuntu-24.04
-    needs: [pre-commit]
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: 3.x
-
-      - name: Install package
-        run: make dev-test
-
-      - name: Test package
-        run: make test
-
-      - name: Upload coverage report
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-
-  check-docs:
-    runs-on: ubuntu-24.04
-    needs: [pre-commit]
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: 3.x
-
-      - name: Checks the docs for broken links
-        run: make dev-test doc-build
-
-
   pass:
     if: always()
     needs:
       - wheels
-      - codecov
-      - check-docs
+      - ci
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     permissions:
