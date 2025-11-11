@@ -54,15 +54,6 @@ jobs:
           languages: ${{ matrix.language }}
           config-file: ./.github/codeql-config.yml
 
-      - name: Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/vcpkg
-            ~/.cache/vcpkg
-          key: codeql-${{ hashFiles('vcpkg.json') }}
-          restore-keys: codeql-${{ hashFiles('vcpkg.json') }}
-
       - uses: actions/setup-python@v5
         with:
           python-version: 3.x

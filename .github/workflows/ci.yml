@@ -76,14 +76,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/pip
-          key: docs-${{ hashFiles('vcpkg.json') }}
-          restore-keys: docs-${{ hashFiles('vcpkg.json') }}
-
       - uses: actions/setup-python@v5
         with:
           python-version: 3.x
