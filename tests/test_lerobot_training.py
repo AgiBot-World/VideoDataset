@@ -181,7 +181,7 @@ def ddp_train(
 
 
 @pytest.mark.parametrize("dataset_cls", [LeRobotDataset, LeRobotVideoDataset])
-@pytest.mark.parametrize("dataset_name", ["aidea_world"])
+@pytest.mark.parametrize("dataset_name", ["ucsd_kitchen_dataset"])
 @pytest.mark.parametrize("num_workers", [8, 4, 2, 1])
 def test_lerobot_video_dataset_training_bench(
     dataset_cls, dataset_name, num_workers, capsys, request
