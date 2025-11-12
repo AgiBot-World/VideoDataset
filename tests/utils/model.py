@@ -10,6 +10,7 @@ class AdaptiveToyModel(nn.Module):
     def __init__(self, input_dim: int = 0, action_dim: int = 0) -> None:
         super().__init__()
         self.image_keys: list = []
+        self.action_keys: list = []
 
         self.input_dim: int = input_dim
         self.action_dim = action_dim
@@ -17,6 +18,8 @@ class AdaptiveToyModel(nn.Module):
         self.network = nn.Sequential(
             nn.Linear(self.input_dim, self.action_dim),
         ).cuda()
+        self.flattened_action_tensors = None
+
         self._initialize_weights()
 
     def forward(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -25,20 +28,29 @@ class AdaptiveToyModel(nn.Module):
             self.image_keys = [
                 k for k in sample_keys if k.startswith("observation.images")
             ]
+            self.action_keys = [
+                k
+                for k in sample_keys
+                if k.startswith(("action", "observations.actions"))
+            ]
 
-        flat_images = self._flatten_tensors(batch, use_cpu=False)
+        flat_images = self._flatten_tensors(batch, self.image_keys, use_cpu=False)
         flat_images = flat_images[:, : self.input_dim]
+        self.flattened_action_tensors = self._flatten_tensors(
+            batch, self.action_keys, use_cpu=False
+        )
 
         return self.network(flat_images)  # type: ignore
 
     def _flatten_tensors(
         self,
         batch: dict[str, torch.Tensor],
+        keys: list[str],
         use_cpu=True,
     ):
         batch_size = batch[self.image_keys[0]].shape[0]
         tensors = []
-        for key in self.image_keys:
+        for key in keys:
             tensor = batch[key]
             tensor = tensor.cpu() if use_cpu else tensor.cuda()
             tensors.append(tensor)

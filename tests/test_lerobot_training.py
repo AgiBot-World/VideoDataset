@@ -69,7 +69,8 @@ def test_lerobot_training(dataset_fixture, dataloader_kwargs, dataset_name, requ
         dataset=dataset, batch_size=training_settings.batch_size, **dataloader_kwargs
     )
 
-    model = AdaptiveToyModel(input_dim=256 * 256 * 3, action_dim=2)
+    action_dim = dataset_settings.lerobot_datasets_action_dim[dataset_name]
+    model = AdaptiveToyModel(input_dim=256 * 256 * 3, action_dim=action_dim)
     criterion = nn.MSELoss()
     optimizer = None
 
