@@ -20,28 +20,24 @@ class TestDatasetSettings(BaseSettings):
     # TODO: adjust path and repo id in public ci runner environment
     # Used for fetching from hugggingface hub
     lerobot_datasets_repo_ids: dict[str, str] = {
-        "ucsd_kitchen_dataset": "lerobot/ucsd_kitchen_dataset"
+        "ucsd_kitchen_dataset": "lerobot/ucsd_kitchen_dataset",
+        "iros_task_2666": "iros/task_2666s",
     }
 
     # Used for loading from a file path
     lerobot_datasets_root_paths: dict[str, Path] = {
         "ucsd_kitchen_dataset": Path("/mnt/public/fengli/lerobot/ucsd_kitchen_dataset"),
-        "aidea_world": Path(
-            "/mnt/public/qiuying/aidea-world-h265-4/alpha/agibotworld/task_327"
-        ),
-        "0730_h265_toy": Path("/mnt/public/qiuying/LEROBOT/H265/0730_toy_h265"),
+        "iros_task_2666": Path("/mnt/public/qiuying/iros/task_2666"),
     }
 
     lerobot_datasets_input_dim: dict[str, int] = {
         "ucsd_kitchen_dataset": 921621,
-        "aidea_world": 1572919,
-        "0730_h265_toy": 589838,
+        "iros_task_2666": 1572919,
     }
 
     lerobot_datasets_action_dim: dict[str, int] = {
         "ucsd_kitchen_dataset": 8,
-        "0730_h265_toy": 14,
-        "aidea_world": 14,
+        "iros_task_2666": 14,
     }
 
     @model_validator(mode="after")
