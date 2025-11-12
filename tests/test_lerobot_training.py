@@ -37,10 +37,7 @@ def test_lerobot_fwd_pass(dataset_fixture, dataloader_kwargs, dataset_name, requ
     dataset = request.getfixturevalue(dataset_fixture)
     dataloader = DataLoader(dataset=dataset, batch_size=16, **dataloader_kwargs)
 
-    input_dim = dataset_settings.lerobot_datasets_input_dim[dataset_name]
-    action_dim = dataset_settings.lerobot_datasets_action_dim[dataset_name]
-
-    adaptive_model = AdaptiveToyModel(input_dim=input_dim, action_dim=action_dim)
+    adaptive_model = AdaptiveToyModel(input_dim=256 * 256 * 3, action_dim=2)
 
     with torch.no_grad():
         for i, batch in enumerate(dataloader):
@@ -72,9 +69,7 @@ def test_lerobot_training(dataset_fixture, dataloader_kwargs, dataset_name, requ
         dataset=dataset, batch_size=training_settings.batch_size, **dataloader_kwargs
     )
 
-    input_dim = dataset_settings.lerobot_datasets_input_dim[dataset_name]
-    action_dim = dataset_settings.lerobot_datasets_action_dim[dataset_name]
-    model = AdaptiveToyModel(input_dim=input_dim, action_dim=action_dim)
+    model = AdaptiveToyModel(input_dim=256 * 256 * 3, action_dim=2)
     criterion = nn.MSELoss()
     optimizer = None
 
@@ -146,9 +141,7 @@ def ddp_train(
         dataset, batch_size=16, num_workers=num_workers, multiprocessing_context="spawn"
     )
 
-    input_dim = dataset_settings.lerobot_datasets_input_dim[dataset_name]
-    action_dim = dataset_settings.lerobot_datasets_action_dim[dataset_name]
-    model = AdaptiveToyModel(input_dim=input_dim, action_dim=action_dim)
+    model = AdaptiveToyModel(input_dim=256 * 256 * 3, action_dim=2)
     model = model.to(rank)
     model = DistributedDataParallel(model, device_ids=[rank])
 
