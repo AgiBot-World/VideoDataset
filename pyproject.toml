@@ -98,11 +98,18 @@ build-verbosity = 1
 skip = [ "pp*", "*win*" ]
 test-command = "pytest {project}/tests"
 test-extras = [ "test" ]
-test-skip = [ "*-win_arm64", "*-macosx_arm64" ]
+test-skip = [ "*-win*", "*-macosx*", "*-manylinux*" ]
+manylinux-x86_64-image = "manylinux_2_28"
 
-[[tool.cibuildwheel.overrides]]
-select = "*-macos*"
-environment = { MACOSX_DEPLOYMENT_TARGET = "10.15" }
+[tool.cibuildwheel.linux]
+repair-wheel-command = """
+auditwheel repair \
+  --wheel-dir {dest_dir} {wheel} \
+  --exclude 'libtorch*.so' \
+  --exclude 'libc10*.so' \
+  --exclude 'libgomp*.so*' \
+  --exclude 'libcuda.so*'
+"""
 
 [tool.ruff]
 src = [

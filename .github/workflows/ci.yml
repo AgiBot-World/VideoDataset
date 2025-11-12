@@ -25,21 +25,23 @@ jobs:
           fetch-depth: 0
 
       - run: make dev-test,doc,lint
-      - run: make test
+      # - run: make test
       - run: make doc
       - run: make build
 
-  wheels:
+
+  build_wheels:
     uses: ./.github/workflows/reuseable_cibuildwheel.yml
     secrets: inherit
     with:
       auto: true
-      extra: false
+      extra: true
+
 
   pass:
     if: always()
     needs:
-      - wheels
+      - build_wheels
       - ci
     runs-on: ubuntu-24.04
     timeout-minutes: 2

@@ -23,7 +23,7 @@ To ensure reproducible and fair results, all tests were conducted in the followi
 | | - **CUDA:** 12.9 |
 | | - **Driver Version:** 560.35.03 |
 | **Dataset** | - **Name:**  agibot-world/AgiBotWorld-Alpha |
-| | -**Task:** | - ** 327 ** |
+| | -**Task:** | - **327** |
 
 ### 2.2 Video Transcoding Preparation
 
@@ -35,7 +35,7 @@ ffmpeg -i input.mp4 -r 30 -c:v libx265  -crf 24 -g 8 -keyint_min 8 -sc_threshold
 
 ## 3. Benchmark Execution
 
-#### **Benchmark Command**
+### **Benchmark Command**
 
 The performance benchmark was executed using the following command:
 
@@ -47,7 +47,7 @@ export PYTHONPATH=$PYTHONPATH:$(pwd)
 python tests/utils/benchmark.py --data /path/to/lerobot_dataset --data-type LeRobotVideoDataset
 ```
 
-#### **Key Parameters**
+### **Key Parameters**
 
 | Parameter | Value | Description |
 | :--- | :--- | :--- |

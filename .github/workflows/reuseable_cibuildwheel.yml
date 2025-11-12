@@ -19,13 +19,10 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-24.04] # renovate: github-runner
-        arch: [aarch64, x86_64]
-        build: [manylinux, musllinux]
+        os: [ubuntu-24.04]
+        arch: [x86_64]
+        build: [manylinux]
         qemu_arch: [aarch64]
-        include:
-          - {os: macos-13, arch: x86_64, build: macos}
-          - {os: macos-14, arch: arm64, build: macos}
 
     steps:
       - uses: actions/checkout@v4
@@ -47,6 +44,15 @@ jobs:
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_BUILD: '*${{ matrix.build }}*'
+          CIBW_BEFORE_ALL: >
+            yum config-manager --add-repo http://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo &&
+            yum -y install cuda-nvcc-12-9 cuda-cudart-devel-12-9 cuda-nvrtc-devel-12-9 nvidia-driver-cuda-libs &&
+            yum install -y https://download1.rpmfusion.org/free/el/rpmfusion-free-release-8.noarch.rpm &&
+            yum install -y ffmpeg ffmpeg-devel && rm -rf /var/cache/yum && yum clean all
+          CIBW_ENVIRONMENT: >
+            PATH=$PATH:/usr/local/cuda/bin
+            CUDACXX=/usr/local/cuda/bin/nvcc
+            LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64
 
       - name: Upload wheels
         if: >

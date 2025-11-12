@@ -1,8 +1,6 @@
 set(PYBIND11_FINDPYTHON ON)
 find_package(pybind11 CONFIG REQUIRED)
 
-find_package(Python REQUIRED COMPONENTS Interpreter Development)
-
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(FFMPEG REQUIRED libavformat libavcodec libavutil
@@ -13,15 +11,6 @@ find_package(CUDA REQUIRED)
 find_library(LIBNVCUVID NAMES libnvcuvid.so libnvcuvid.so.1)
 if(NOT LIBNVCUVID)
   message(FATAL_ERROR "libnvcuvid not found")
-endif()
-
-find_library(
-  LIBNPPICC
-  NAMES libnppicc.so libnppicc.so.12
-  HINTS ${CUDA_TOOLKIT_ROOT_DIR} ${CUDA_TOOLKIT_ROOT_DIR}/lib64
-        ${CUDA_TOOLKIT_ROOT_DIR}/lib)
-if(NOT LIBNPPICC)
-  message(FATAL_ERROR "libnppicc not found")
 endif()
 
 execute_process(
@@ -70,13 +59,11 @@ target_include_interface_directories(
 target_link_libraries(
   ${target_name_internal}
   PUBLIC ${LIBNVCUVID}
-         ${LIBNPPICC}
          cuda
          ${FFMPEG_LIBRARIES}
          ${TORCH_LIBRARIES}
          ${TORCH_PYTHON_LIBRARY}
-         Python::Python
-         pybind11::headers)
+         pybind11::pybind11)
 
 pybind11_add_module(${target_name} MODULE)
 warn_target(${target_name})
@@ -110,6 +97,7 @@ install_dependency(
   POST_EXCLUDE_REGEXES
   "x86_64-linux-gnu"
   "/opt"
+  "/lib64"
   "/usr/local"
   ${_site_dirs}
   DEPENDS_DESTINATION
