@@ -50,7 +50,7 @@ class AdaptiveToyModel(nn.Module):
     ):
         batch_size = batch[self.image_keys[0]].shape[0]
         tensors = []
-        for key in self.image_keys:
+        for key in keys:
             tensor = batch[key]
             tensor = tensor.cpu() if use_cpu else tensor.cuda()
             tensors.append(tensor)
