@@ -32,7 +32,8 @@ jobs:
     secrets: inherit
     with:
       auto: true
-      extra: false
+      extra: true
+
 
 
   pass:
