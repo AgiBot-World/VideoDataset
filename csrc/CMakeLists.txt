@@ -3,8 +3,14 @@ find_package(pybind11 CONFIG REQUIRED)
 
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(FFMPEG REQUIRED libavformat libavcodec libavutil
-                  libswresample)
+pkg_check_modules(
+  FFMPEG
+  REQUIRED
+  IMPORTED_TARGET
+  libavformat
+  libavcodec
+  libavutil
+  libswresample)
 
 find_package(CUDA REQUIRED)
 
@@ -53,17 +59,13 @@ target_sources(${target_name_internal} PRIVATE ${${target_name_internal}_srcs}
 
 target_include_interface_directories(
   ${target_name_internal} ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_BINARY_DIR}/git_version ${FFMPEG_INCLUDE_DIRS}
-  ${TORCH_INCLUDE_DIRS} ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+  ${CMAKE_CURRENT_BINARY_DIR}/git_version ${TORCH_INCLUDE_DIRS}
+  ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
 target_link_libraries(
   ${target_name_internal}
-  PUBLIC ${LIBNVCUVID}
-         cuda
-         ${FFMPEG_LIBRARIES}
-         ${TORCH_LIBRARIES}
-         ${TORCH_PYTHON_LIBRARY}
-         pybind11::pybind11)
+  PUBLIC ${LIBNVCUVID} ${CUDA_CUDA_LIBRARY} PkgConfig::FFMPEG
+         ${TORCH_LIBRARIES} ${TORCH_PYTHON_LIBRARY} pybind11::pybind11)
 
 pybind11_add_module(${target_name} MODULE)
 warn_target(${target_name})
@@ -90,7 +92,9 @@ endif()
 install(TARGETS ${target_name} DESTINATION ${CMAKE_PROJECT_NAME})
 
 message(
-  STATUS "Exclude post regexes: x86_64-linux-gnu;/opt;/usr/local;${_site_dirs}")
+  STATUS
+    "Exclude post regexes: x86_64-linux-gnu;/opt;/lib64;/usr/local;${_site_dirs}"
+)
 install_dependency(
   TARGETS
   ${target_name}

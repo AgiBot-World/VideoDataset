@@ -18,15 +18,12 @@ env:
 
 jobs:
   ci:
-    runs-on: arc-runner-set
+    runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - run: make dev-test,doc,lint
       # - run: make test
-      - run: make doc
+      - run: pipenv run python -m pytest tests -k "not benchmark and not bench and not lerobot"
+      - run: make doc-build
       - run: make build
 
 
@@ -35,7 +32,7 @@ jobs:
     secrets: inherit
     with:
       auto: true
-      extra: true
+      extra: false
 
 
   pass:

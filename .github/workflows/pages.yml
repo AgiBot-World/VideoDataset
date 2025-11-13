@@ -6,9 +6,6 @@ on:
   push:
     branches:
       - main
-      - beta
-      - alpha
-      - '*.x'
 
   release:
     types:
@@ -34,6 +31,19 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
+
+      - name: Install dependencies
+        run: >
+          wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb && \
+          dpkg -i cuda-keyring_1.1-1_all.deb && \
+          apt-get install -y --no-install-recommends \
+          apt update && apt install -y \
+            cuda-nvcc-12-9 cuda-cudart-dev-12-9 cuda-nvrtc-dev-12-9 nvidia-driver \
+            ffmpeg libavutil-dev \
+            libswscale-dev \
+            libavdevice-dev \
+            libavfilter-dev \
+            libx264-dev
 
       - uses: actions/setup-python@v5
         with:

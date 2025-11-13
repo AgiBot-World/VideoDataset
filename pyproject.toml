@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "scikit_build_core.build"
-requires = [ "conan", "mypy", "numpy>2", "scikit-build-core", "torch<2.9.0" ]
+requires = [ "conan", "mypy", "numpy>2", "scikit-build-core", "torch" ]
 
 [project]
 name = "videodataset"
@@ -95,7 +95,7 @@ CONAN_INSTALL_ARGS = "--build=missing;-c tools.build:skip_test=true"
 
 [tool.cibuildwheel]
 build-verbosity = 1
-skip = [ "pp*", "*win*" ]
+skip = [ "*win*" ]
 test-command = "pytest {project}/tests"
 test-extras = [ "test" ]
 test-skip = [ "*-win*", "*-macosx*", "*-manylinux*" ]
@@ -110,6 +110,9 @@ auditwheel repair \
   --exclude 'libgomp*.so*' \
   --exclude 'libcuda.so*'
 """
+before-build = [
+    "ls ~/.cache/pip && rm -rf ~/.cache/pip/* || true",
+]
 
 [tool.ruff]
 src = [
