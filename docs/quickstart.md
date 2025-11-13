@@ -5,6 +5,7 @@
 - NVIDIA GPU with CUDA support and CUDA Toolkit installed
   - CUDA Toolkit 12.0 or later
 - FFmpeg installed
+- Python 3.10 or later
 
 ## Installation
 
@@ -23,77 +24,162 @@ pip install . git+https://code.agibot.com/ai-platform/videodataset.git@main
 
 > Note: If there is no available network to access to github, please add a proxy mirror to the environment variable `GITHUB_PROXY`.
 
+
+## Data Preparation
+
+Before use, you need to prepare a video dataset. There are no specific requirements for the data organization format; it can follow the LeRobotDataset format or any other custom structure, as long as the __getitem__ method can correctly determine which videos and which frames to parse.
+
+### Video Transcoding
+
+To achieve high-performance decoding and precise frame-seeking, the video must be transcoded before use. Here is an example of video transcoding using FFmpeg：
+
+```bash
+ffmpeg -i input.mp4 -r 30 -c:v libx265  -crf 24 -g 8 -keyint_min 8 -sc_threshold 0 -vf "setpts=N/(30*TB)" -bf 0 -c:a copy output.mp4
+```
+
+#### Key parameter explanation
+
+- `-g 8​:` Sets the keyframe (I-frame) interval to 8 frames
+- `-sc_threshold 0​​:` Disables automatic keyframe insertion at scene changes
+- `-vf "setpts=N/(30*TB)"​:`  Synchronize the video to a 30 fps timeline
+- `-bf 0​:` Sets the number of bidirectional frames (B-frames) to 0
+- `-c:v libx265​:` Selects the H.265/HEVC video encoder (libx265) for compression
+
+> Note: Since `BaseVideoDataset` uses the Nvidia Codec SDK for decoding, it is essential to ensure that the selected video codec is supported by the GPU on the machine. For specific details, please refer to the official NVIDIA documentation: [Video Encode and Decode Support Matrix](https://developer.nvidia.com/video-encode-decode-support-matrix)
+
+
+###
 ## Quickstart with VideoDataset
 
 VideoDataset provides two main usage patterns:
 
-### Mixin class with torch.utils.data.Dataset
+### Creating Custom Dataset with BaseVideoDataset
 
-Quick start with a mixin class for `torch.utils.data.Dataset` with the installation of `pip install videodataset` and the following code:
+To get started quickly, first install the package using `pip install videodataset`. Then, you can utilize the `BaseVideoDataset` mixin class for `torch.utils.data.Dataset` to handle your custom data.
+
+The following example demonstrates this using the LeRobotDataset format:
 
 ```python
-from videodataset.dataset.base_dataset import BaseVideoDataset
-import torch
-import random
+import argparse
+import json
+import logging
 
-class MyDataset(torch.utils.data.Dataset, BaseVideoDataset):
-    def __init__(self, number_of_frames: int, video_path: str, codec: str = "h265"):
-        super().__init__()
-        self.video_path = video_path
-        self.decoder = self.get_decoder(video_path, codec)
-        self.frames = []
-        self.number_of_frames = number_of_frames
+from pathlib import Path
+from torch.utils.data import DataLoader, Dataset
+
+from videodataset.dataset import BaseVideoDataset
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+
+class MyDataset(Dataset, BaseVideoDataset):
+
+    def __init__(
+        self,
+        root: Path,
+    ):
+        Dataset.__init__(self)
+        BaseVideoDataset.__init__(self)
+        self.root = Path(root)
+
+        meta_file = self.root / "meta" / "info.json"
+        with meta_file.open() as f:
+            self.meta = json.load(f)
+        self.total_frames = self.meta.get("total_frames", 0)
+        features = self.meta.get("features").keys()
+        self.video_keys = [
+            key for key in features if key.startswith("observation.images")
+        ]
 
     def __len__(self):
-        return self.number_of_frames
+        return self.total_frames
 
-    def __getitem__(self, idx):
-        got = False
-        while not got:
-            try:
-                frame = self.decode_video_frame(
-                    self.decoder,
-                    self.video_path,
-                    idx,
-                )
-                self.frames.append(frame)
-                result = self.frames[idx]
-                got = True
-            except Exception:
-                idx = random.randint(0, len(self.frames) - 1)
-        return result
+    def __getitem__(self, idx) -> dict:
+        data = {}
+        for video_key in self.video_keys:
 
-# Usage example
-dataset = MyDataset(10, "/path/to/video.mp4")
-dataloader = torch.utils.data.DataLoader(
-    dataset,
-    batch_size=4,
-    shuffle=True,
-    num_workers=0,
-)
+            # Key Point 1: Initialize the decoder, specifying an efficient video codec (e.g., HEVC)
+            decoder = self.get_decoder(decoder_key=video_key, codec="hevc")
+            video_path = self.root / "videos" / video_key / "chunk-000" / "file-000.mp4"
+
+            # Key Point 2: Decode the specified frame
+            frame = self.decode_video_frame(
+                decoder=decoder, video_path=video_path, frame_idx=idx
+            )
+            data[video_key] = frame
+        return data
+
+def main(data_dir: Path, batch_size: int, num_workers: int):
+
+    dataset = MyDataset(root=data_dir)
+
+    # Key Point 3: Using 'multiprocessing_context="spawn"' when num_workers > 0
+    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, multiprocessing_context="spawn", )
+
+    for epoch in range(2):
+        for batch_idx, batch_data in enumerate(dataloader):
+            logger.info(f"Epoch {epoch} Batch {batch_idx}: {batch_data}")
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="BaseVideoDataset Example")
+    parser.add_argument("--data-dir", type=str, default="", help="Path to the dataset")
+    parser.add_argument("--batch-size", type=int, default=4, help="Batch size for data loading")
+    parser.add_argument("--num-workers", type=int, default=4, help="Number of Data Loading Workers",)
+
+    args = parser.parse_args()
+    main(**vars(args))
 ```
 
 ### LeRobot Dataset Integration
 
-Use the `LeRobotVideoDataset` class requires the installation of `pip install videodataset[lerobot]`. Here is an example:
+The `LeRobotVideoDataset` class inherits from `LeRobotDataset`, enabling seamless integration with the LeRobot framework. Here is an example (before use, you must execute `pip install videodataset[lerobot]` to install the LeRobot-related extensions):
 
 ```python
+import argparse
+import json
+import logging
+
+from pathlib import Path
+from torch.utils.data import DataLoader, Dataset
+
+from lerobot.datasets.lerobot_dataset import LeRobotDataset
+
 from videodataset.dataset.lerobot_dataset import LeRobotVideoDataset
-import torch
 
-# Initialize dataset
-lerobot_dataset = LeRobotVideoDataset(
-    repo_id=None,
-    root="/path/to/lerobot_svla_so100_stacking",
-)
 
-# Create DataLoader
-dataloader = torch.utils.data.DataLoader(
-    lerobot_dataset,
-    batch_size=4,
-    shuffle=True,
-    num_workers=0,
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
+logger = logging.getLogger(__name__)
+
+
+def main(data_dir: Path, batch_size: int, num_workers: int):
+
+    # Key Point 1: Initialize a LeRobotVideoDataset instance, It uses the same parameters as LeRobotDataset.
+    dataset = LeRobotVideoDataset(repo_id=None, root=data_dir,)
+
+    # Key Point 2: Using 'multiprocessing_context="spawn"' when num_workers > 0
+    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, multiprocessing_context="spawn", )
+
+    for epoch in range(2):
+        for batch_idx, batch_data in enumerate(dataloader):
+            logger.info(f"Epoch {epoch} Batch {batch_idx}: {batch_data}")
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description="BaseVideoDataset Example")
+    parser.add_argument("--data-dir", type=str, default="", help="Path to the dataset")
+    parser.add_argument("--batch-size", type=int, default=4, help="Batch size for data loading")
+    parser.add_argument("--num-workers", type=int, default=4, help="Number of Data Loading Workers",)
+
+    args = parser.parse_args()
+    main(**vars(args))
 ```
 
 For more examples, see the [tests directory](https://code.agibot.com/ai-platform/videodataset/-/tree/main/tests).
