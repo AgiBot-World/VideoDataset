@@ -18,7 +18,7 @@ env:
 
 jobs:
   ci:
-    runs-on: self-hosted
+    runs-on: arc-runner-test
     steps:
       - uses: actions/checkout@v4
         with:
