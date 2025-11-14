@@ -7,81 +7,48 @@ from torch import nn
 class AdaptiveToyModel(nn.Module):
     """Adaptive linear model that adjusts its dimensions based on input data."""
 
-    def __init__(
-        self, hidden_dim: int = 2, input_dim: int = 0, action_dim: int = 0
-    ) -> None:
+    def __init__(self, input_dim: int = 0, action_dim: int = 0) -> None:
         super().__init__()
         self.image_keys: list = []
-        self.state_keys: list = []
         self.action_keys: list = []
 
         self.input_dim: int = input_dim
         self.action_dim = action_dim
 
-        self.hidden_dim = hidden_dim
-        self.flattened_action_tensors: torch.Tensor | None = None
-        self._is_batched: bool = False
         self.network = nn.Sequential(
-            nn.Linear(self.input_dim, self.hidden_dim),
-            nn.ReLU(),
-            nn.Linear(self.hidden_dim, self.hidden_dim // 2),
-            nn.ReLU(),
-            nn.Linear(self.hidden_dim // 2, self.action_dim),
+            nn.Linear(self.input_dim, self.action_dim),
         ).cuda()
-        self.initial = False
+        self.flattened_action_tensors = None
 
-    def forward(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
-        """Forward pass with lazy initialization of the network."""
-        if not self.initial:
-            self._initialize_network_from_batch(batch)
-            self.initial = True
-
-        self._is_batched = batch[self.image_keys[0]].ndim == 4
-        # Assume uniform batch size across all fields
-        batch_size = batch[self.image_keys[0]].shape[0] if self._is_batched else 1
-
-        flat_images = self._prep_and_flatten_tensors(
-            batch, self.image_keys, batch_size, use_cpu=False
-        )
-        flat_states = self._prep_and_flatten_tensors(
-            batch, self.state_keys, batch_size, use_cpu=False
-        )
-
-        self.flattened_action_tensors = self._prep_and_flatten_tensors(
-            batch, self.action_keys, batch_size, use_cpu=False
-        )
-
-        concatenated_input = torch.cat([flat_images, flat_states], dim=1)
-        return self.network(concatenated_input)  # type: ignore
-
-    def _initialize_network_from_batch(self, batch: dict[str, torch.Tensor]):
-        # Temporarily process a batch to infer dimensions
-        sample_keys = batch.keys()
-        self.image_keys = [k for k in sample_keys if k.startswith("observation.images")]
-        self.state_keys = [k for k in sample_keys if k.startswith("observation.state")]
-        self.action_keys = [
-            k for k in sample_keys if k.startswith(("action", "observations.actions"))
-        ]
-        self._is_batched = batch[self.image_keys[0]].ndim == 4
         self._initialize_weights()
 
-    def _get_dim(
-        self, batch: dict[str, torch.Tensor], batch_size: int, keys: list[str]
-    ) -> int:
-        corresponding_tensors = [batch[k] for k in keys]
-        assert all(isinstance(item, torch.Tensor) for item in corresponding_tensors), (
-            "Image, state, or action items must be tensors"
-        )
-        total_elements_per_tensor = [item.numel() for item in corresponding_tensors]
-        return int(sum(total_elements_per_tensor) / batch_size)
+    def forward(self, batch: dict[str, torch.Tensor]) -> torch.Tensor:
+        if not self.image_keys:
+            sample_keys = batch.keys()
+            self.image_keys = [
+                k for k in sample_keys if k.startswith("observation.images")
+            ]
+            self.action_keys = [
+                k
+                for k in sample_keys
+                if k.startswith(("action", "observations.actions"))
+            ]
 
-    def _prep_and_flatten_tensors(
+        flat_images = self._flatten_tensors(batch, self.image_keys, use_cpu=False)
+        flat_images = flat_images[:, : self.input_dim]
+        self.flattened_action_tensors = self._flatten_tensors(
+            batch, self.action_keys, use_cpu=False
+        )
+
+        return self.network(flat_images)  # type: ignore
+
+    def _flatten_tensors(
         self,
         batch: dict[str, torch.Tensor],
         keys: list[str],
-        batch_size: int,
         use_cpu=True,
     ):
+        batch_size = batch[self.image_keys[0]].shape[0]
         tensors = []
         for key in keys:
             tensor = batch[key]
