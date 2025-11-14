@@ -39,7 +39,6 @@ jobs:
   pass:
     if: always()
     needs:
-      - build_wheels
       - ci
     runs-on: ubuntu-24.04
     timeout-minutes: 2
