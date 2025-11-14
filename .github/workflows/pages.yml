@@ -20,6 +20,7 @@ env:
 
 jobs:
   pages:
+    if: false
     name: Deploy to GitHub Pages
     runs-on: ubuntu-24.04
     permissions:
@@ -31,6 +32,14 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
+
+      - name: Free up disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          swap-storage: true
 
       - name: Install dependencies
         run: >
@@ -55,7 +64,7 @@ jobs:
           python-version: 3.x
 
       - name: Build Docs
-        run: make dev-doc
+        run: make dev-doc doc
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
