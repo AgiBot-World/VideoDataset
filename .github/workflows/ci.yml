@@ -18,11 +18,17 @@ env:
 
 jobs:
   ci:
-    runs-on: self-hosted
+    runs-on: arc-runner-set
+    container:
+      image: registry.agibot.com/ai-platform/forge-${{ matrix.container-variant }}:v2.0.0
+    strategy:
+      fail-fast: false
+      matrix:
+        container-variant: [25.04, 25.06]
+
     steps:
       - run: make dev-test,doc,lint
-      # - run: make test
-      - run: pipenv run python -m pytest tests -k "not benchmark and not bench and not lerobot"
+      - run: make test
       - run: make doc-build
       - run: make build
 
