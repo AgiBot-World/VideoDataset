@@ -25,9 +25,6 @@ extern "C" {
 #if LIBAVCODEC_VERSION_INT >= 3824484
 #include <libavcodec/bsf.h>
 #endif
-
-// #define __STDC_CONSTANT_MACROS
-#include <libavcodec/codec_id.h>
 }
 
 #include "core/NvDecoder.h"

@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "scikit_build_core.build"
-requires = [ "conan", "mypy", "scikit-build-core", "torch" ]
+requires = [ "conan", "mypy", "numpy>2", "scikit-build-core", "torch" ]
 
 [project]
 name = "videodataset"
@@ -36,11 +36,11 @@ dynamic = [
     "version",
 ]
 dependencies = [
-    "numpy<2",
-    "torch>=2.5.0a0",
+    "numpy",
+    "torch>=2.2.1",
 ]
 optional-dependencies.lerobot = [
-    "lerobot==0.3.3",
+    "lerobot==0.4.0",
 ]
 urls.documentation = "https://AgiBot-Genie.github.io/videodataset"
 urls.issue = "https://github.com/AgiBot-Genie/videodataset/issues"
@@ -91,17 +91,28 @@ sdist.include = [
 [tool.scikit-build.cmake.define]
 BUILD_TESTING = "OFF"
 CMAKE_BUILD_TYPE = "Release"
+CONAN_INSTALL_ARGS = "--build=missing;-c tools.build:skip_test=true"
 
 [tool.cibuildwheel]
 build-verbosity = 1
-skip = [ "pp*", "*win*" ]
+skip = [ "*win*" ]
 test-command = "pytest {project}/tests"
 test-extras = [ "test" ]
-test-skip = [ "*-win_arm64", "*-macosx_arm64" ]
+test-skip = [ "*-win*", "*-macosx*", "*-manylinux*" ]
+manylinux-x86_64-image = "manylinux_2_28"
 
-[[tool.cibuildwheel.overrides]]
-select = "*-macos*"
-environment = { MACOSX_DEPLOYMENT_TARGET = "10.15" }
+[tool.cibuildwheel.linux]
+repair-wheel-command = """
+auditwheel repair \
+  --wheel-dir {dest_dir} {wheel} \
+  --exclude 'libtorch*.so' \
+  --exclude 'libc10*.so' \
+  --exclude 'libgomp*.so*' \
+  --exclude 'libcuda.so*'
+"""
+before-build = [
+    "ls ~/.cache/pip && rm -rf ~/.cache/pip/* || true",
+]
 
 [tool.ruff]
 src = [
