@@ -20,7 +20,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-24.04]
-        arch: [x86_64]
+        arch: [x86_64, aarch64]
         build: [manylinux]
         qemu_arch: [aarch64]
 
