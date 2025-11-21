@@ -47,7 +47,6 @@ ffmpeg -i input.mp4 -r 30 -c:v libx265  -crf 24 -g 8 -keyint_min 8 -sc_threshold
 
 ## Quickstart with VideoDataset
 
-VideoDataset provides two main usage patterns:
 
 ### Creating Custom Dataset with BaseVideoDataset
 

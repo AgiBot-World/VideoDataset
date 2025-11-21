@@ -61,7 +61,7 @@ You can ​measure​ the `Video Decoding Throughput` metric by running the `ben
 
 ```bash
 
-python benchmarks/decoder_benchmark.py --repo-id AgiBotWorldAdmin/videodataset-benchmark --num-processes 8 16 32
+python benchmarks/decoder_benchmark.py --repo-id AgiBotWorldAdmin/videodataset-benchmark --num-processes 4
 
 ```
 
@@ -80,7 +80,7 @@ You can ​measure​ this metric by running the `benchmarks/dataset_benchmark.p
 
 ```bash
 
-python benchmarks/dataset_benchmark.py --repo-id AgiBotWorldAdmin/videodataset-benchmark --num-processes 8 16 32
+python benchmarks/dataset_benchmark.py --repo-id AgiBotWorldAdmin/videodataset-benchmark --num-processes 8
 
 ```
 
@@ -122,7 +122,7 @@ You can ​measure​ this metric by running the `benchmarks/base_video_dataset.
 
 ```bash
 
-python benchmarks/base_video_dataset.py --repo-id AgiBotWorldAdmin/videodataset-benchmark --world-size 2
+python benchmarks/base_video_dataset.py --repo-id AgiBotWorldAdmin/videodataset-benchmark --num-workers 8 --world-size 2
 
 ```
 
@@ -132,6 +132,7 @@ python benchmarks/base_video_dataset.py --repo-id AgiBotWorldAdmin/videodataset-
 | :--- | :--- | :--- |
 | **`--repo-id`** | `AgiBotWorldAdmin/videodataset-benchmark` | Repo of the dataset |
 | **`--local-dir`** | `./AgiBotWorldAdmin/videodataset-benchmark` | Local dataset path |
+| **`--num-workers`** | `8` | Number of Data Loading Workers |
 | **`--batch-size`** | `16` | Batch size for data loading |
 | **`--warmup-steps`** | `10` | Number of warmup steps before timing|
 | **`--max-steps`** | `1000` | Maximum iteration steps|
@@ -156,7 +157,7 @@ python benchmarks/decoder_benchmark.py \
 
 This table show the results:
 
-| num_workers   | throughput (FPS)  | GPU Video Decoder Utilization |
+| num-processes | throughput (FPS)  | GPU Video Decoder Utilization |
 | ---------:    | ----------:       | ----------:                   |
 | 8             | 8249.6676         | >=30%                         |
 | 16            | 15285.96          | >=60%                         |
@@ -177,7 +178,7 @@ python benchmarks/dataset_benchmark.py \
 
 This table show the results:
 
-| num_workers   | throughput (FPS)  | GPU Video Decoder Utilization |
+| num-processes | throughput (FPS)  | GPU Video Decoder Utilization |
 | ---------:    | ----------:       | ----------:                   |
 | 8             | 8286.304          | >=30%                         |
 | 16            | 14999.516         | >=60%                         |
