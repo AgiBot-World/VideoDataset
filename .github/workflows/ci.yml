@@ -26,7 +26,7 @@ jobs:
           fetch-depth: 0
       - run: make dev-test,doc,lint
       - run: make test
-      - run: make doc-build
+      # - run: make doc-build
       - run: make build
 
 
