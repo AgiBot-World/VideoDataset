@@ -29,7 +29,7 @@ Before use, you need to prepare a video dataset. There are no specific requireme
 
 ### Video Transcoding
 
-To achieve high-performance decoding and precise frame-seeking, the video must be transcoded before use. Here is an example of video transcoding using FFmpeg：
+To achieve high-performance decoding and precise frame-seeking, the videos must be transcoded. Here is an example of video transcoding using FFmpeg:
 
 ```bash
 ffmpeg -i input.mp4 -r 30 -c:v libx265  -crf 24 -g 8 -keyint_min 8 -sc_threshold 0 -vf "setpts=N/(30*TB)" -bf 0 -c:a copy output.mp4
