@@ -25,7 +25,7 @@ pip install . git+https://github.com/AgiBot-World/videodataset.git
 
 ## Data Preparation
 
-Before use, you need to prepare a video dataset. There are no specific requirements for the data organization format; it can follow the LeRobotDataset format or any other custom structure, as long as the __getitem__ method can correctly determine which videos and which frames to parse.
+There are no specific requirements for the data organization format and it can follow the LeRobotDataset format or any other custom structure.
 
 ### Video Transcoding
 
@@ -49,7 +49,7 @@ ffmpeg -i input.mp4 -r 30 -c:v libx265  -crf 24 -g 8 -keyint_min 8 -sc_threshold
 
 ### Creating Custom Dataset with BaseVideoDataset
 
-To get started quickly, first install the package using `pip install videodataset`. Then, you can utilize the `BaseVideoDataset` mixin class for `torch.utils.data.Dataset` to handle your custom data.
+To get started quickly, first install the package using `pip install videodataset`. Then, you can utilize the `BaseVideoDataset` mixin class for `torch.utils.data.Dataset` to handle your custom data, as long as the __getitem__ method can correctly determine which videos and which frames to parse.
 
 The following example demonstrates this using the LeRobotDataset format:
 
