@@ -12,4 +12,4 @@ ffmpeg -i input.mp4 -c:v libx264 -crf 23 -bf 0 output.mp4
 
 ## Only support limited codecs
 
-Only support AV1, H.264 and H.265 video codecs.
+According to <https://developer.nvidia.com/video-encode-decode-support-matrix>, videodataset focuses on the supported video codecs VP9, AV1, H.264, and H.265.
