@@ -73,7 +73,6 @@ def main(
         processes.append(process)
         process.start()
 
-    # 等待所有进程完成
     for process in processes:
         process.join()
 
