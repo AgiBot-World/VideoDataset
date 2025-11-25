@@ -47,7 +47,6 @@ ffmpeg -i input.mp4 -r 30 -c:v libx265  -crf 24 -g 8 -keyint_min 8 -sc_threshold
 
 ## Quickstart with VideoDataset
 
-
 ### Creating Custom Dataset with BaseVideoDataset
 
 To get started quickly, first install the package using `pip install videodataset`. Then, you can utilize the `BaseVideoDataset` mixin class for `torch.utils.data.Dataset` to handle your custom data.
