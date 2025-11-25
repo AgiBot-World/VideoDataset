@@ -5,7 +5,6 @@ build:
   parallel:
     matrix:
       - NVIDIA_PYTORCH_VERSION:
-          - '24.10'
           - '25.04'
   interruptible: true
   rules:
