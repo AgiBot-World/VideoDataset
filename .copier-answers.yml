@@ -16,7 +16,7 @@ max_py: '3.13'
 min_py: '3.10'
 module_name: videodataset
 organization_name: genie
-project_description: Video Dataset with NvCodec.
+project_description: A GPU-accelerated library that enables random frame access and efficient video decoding for data loading.
 project_name: VideoDataset
 repo_host: github.com
 repo_name: videodataset
