@@ -31,6 +31,8 @@ Since the H100 GPU cannot decode AV1 videos, all test videos were pre-transcoded
 ffmpeg -i input.mp4 -r 30 -c:v libx265  -crf 24 -g 8 -keyint_min 8 -sc_threshold 0 -vf "setpts=N/(30*TB)" -bf 0 -c:a copy output.mp4
 ```
 
+>Note: The test data required to run the benchmark has been uploaded to Hugging Face: [AgiBotWorldAdmin/videodataset-benchmark](https://huggingface.co/datasets/AgiBotWorldAdmin/videodataset-benchmark/tree/main)
+
 ## 3. Benchmark
 
 ### 3.1 Metrics
@@ -61,7 +63,7 @@ You can ​measure​ the `Video Decoding Throughput` metric by running the `ben
 
 ```bash
 
-python benchmarks/decoder_benchmark.py --repo-id AgiBotWorldAdmin/videodataset-benchmark --num-processes 4
+python benchmarks/decoder_benchmark.py --video-path AgiBotWorldAdmin/videodataset-benchmark/videos/observation.images.top_head/chunk-000/file-000.mp4 --num-processes 4
 
 ```
 
