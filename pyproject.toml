@@ -4,7 +4,7 @@ requires = [ "conan", "mypy", "numpy>2", "scikit-build-core", "torch" ]
 
 [project]
 name = "videodataset"
-description = "Video Dataset with NvCodec."
+description = "A GPU-accelerated library that enables random frame access and efficient video decoding for data loading."
 readme = "README.md"
 keywords = [
     "dataset",

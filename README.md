@@ -2,7 +2,7 @@
 
 <!-- SPHINX-START -->
 
-Video Dataset with NvCodec.
+A GPU-accelerated library that enables random frame access and efficient video decoding for data loading.
 
 [![Documentation](https://img.shields.io/badge/Documentation-sphinx-blue)](https://AgiBot-World.github.io/videodataset)
 [![License](https://img.shields.io/github/license/AgiBot-World/videodataset)](https://github.com/AgiBot-World/videodataset/blob/master/LICENSE)

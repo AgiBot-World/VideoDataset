@@ -1,7 +1,7 @@
 """
 Copyright (c) 2025 agibot. All rights reserved.
 
-videodataset: Video Dataset with NvCodec.
+videodataset: A GPU-accelerated library that enables random frame access and efficient video decoding for data loading.
 """
 
 from __future__ import annotations
