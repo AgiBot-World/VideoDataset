@@ -73,7 +73,3 @@ jobs:
           merge-multiple: true
 
       - uses: pypa/gh-action-pypi-publish@release/v1
-        env:
-          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
