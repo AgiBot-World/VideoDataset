@@ -10,7 +10,7 @@ copyright_holder: agibot
 copyright_license: MIT License
 copyright_year: '2025'
 create_devcontainer: false
-default_py: '3.10'
+default_py: '3.12'
 docs_type: sphinx
 max_py: '3.13'
 min_py: '3.10'
