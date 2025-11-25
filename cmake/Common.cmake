@@ -7,7 +7,7 @@ include_guard(GLOBAL)
 include(CheckCXXSourceCompiles)
 
 #[[
-Check that the variable with given name is defined。
+Check that the variable with given name is defined.
 
 Example:
 
