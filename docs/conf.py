@@ -10,7 +10,7 @@ from importlib import metadata
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "VideoDataset"
-release = metadata.version("videodataset")
+release = metadata.version("agibot-videodataset")
 version = ".".join(release.split(".")[:2])
 copyright = "2025 agibot"
 author = "geine"
