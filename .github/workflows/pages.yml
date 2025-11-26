@@ -65,7 +65,7 @@ jobs:
       - name: Build Docs
         run: |
           pipx install pipenv==2025.0.4
-          make dev-doc doc
+          make dev-test,doc,lint doc-build mypy
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

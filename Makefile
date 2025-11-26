@@ -63,7 +63,7 @@ dev-%: venv
 # Prepare the development environment.
 # Install the package in editable mode with all optional dependencies and pre-commit hook.
 dev: install
-	${PIPRUN} pip install -e . --group test
+	${PIPRUN} pip install -e . --group test --group doc --group lint
 	if [ "$(CI)" != "true" ] && command -v pre-commit > /dev/null 2>&1; then pre-commit install; fi
 
 # Install standalone tools
