@@ -64,7 +64,7 @@ linkcheck_ignore = [
     "https://github.com",
     "https://docs.python.org",
     "https://github.com/AgiBot-World/videodataset",
-    "https://AgiBot-World.github.io/videodataset",
+    "https://AgiBot-World.github.io/VideoDataset",
 ]
 
 # -- Options for HTML output -----------------------------------------------------------
