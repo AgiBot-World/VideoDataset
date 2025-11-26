@@ -59,7 +59,7 @@ jobs:
     needs: [build_wheels, build_sdist, check_dist]
     environment:
       name: pypi
-      url: https://pypi.org/project/videodataset
+      url: https://pypi.org/project/agibot-videodataset
     permissions:
       id-token: write
     runs-on: ubuntu-latest
