@@ -63,7 +63,9 @@ jobs:
           python-version: 3.x
 
       - name: Build Docs
-        run: make dev-doc doc
+        run: |
+          pipx install pipenv==2025.0.4
+          make dev-doc doc
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
