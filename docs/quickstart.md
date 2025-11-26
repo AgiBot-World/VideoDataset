@@ -12,7 +12,7 @@
 ### Install from PyPI index
 
 ```bash
-pip install videodataset
+pip install agibot-videodataset
 ```
 
 ### Building from Source
@@ -49,7 +49,7 @@ ffmpeg -i input.mp4 -r 30 -c:v libx265  -crf 24 -g 8 -keyint_min 8 -sc_threshold
 
 ### Creating Custom Dataset with BaseVideoDataset
 
-To get started quickly, first install the package using `pip install videodataset`. Then, you can utilize the `BaseVideoDataset` mixin class for `torch.utils.data.Dataset` to handle your custom data, as long as the __getitem__ method can correctly determine which videos and which frames to parse.
+To get started quickly, first install the package. Then, you can utilize the `BaseVideoDataset` mixin class for `torch.utils.data.Dataset` to handle your custom data, as long as the __getitem__ method can correctly determine which videos and which frames to parse.
 
 The following example demonstrates this using the LeRobotDataset format:
 
