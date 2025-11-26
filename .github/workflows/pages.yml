@@ -20,7 +20,6 @@ env:
 
 jobs:
   pages:
-    if: false
     name: Deploy to GitHub Pages
     runs-on: ubuntu-24.04
     permissions:
