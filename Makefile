@@ -68,7 +68,7 @@ dev: install
 
 # Install standalone tools
 prerequisites:
-	pipx list --short | grep -q "check-jsonschema 0.34.1" || pipx install --force check-jsonschema==0.34.1
+	pipx list --short | grep -q "check-jsonschema 0.35.0" || pipx install --force check-jsonschema==0.35.0
 	pipx list --short | grep -q "codespell 2.4.1" || pipx install --force codespell[toml]==2.4.1
 	pipx list --short | grep -q "pipenv 2025.0.4" || pipx install --force pipenv==2025.0.4
 	pipx list --short | grep -q "pre-commit 4.2.0" || pipx install --force pre-commit==4.2.0
