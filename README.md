@@ -66,52 +66,7 @@ pip install . git+https://github.com/AgiBot-World/videodataset.git
 
 ## Quick Start
 
-Here is a simple example. The complete example can be found in the [quickstart documentation](https://github.com/AgiBot-World/VideoDataset/blob/main/docs/quickstart.md).
-
-```python
-
-from pathlib import Path
-from torch.utils.data import DataLoader, Dataset
-
-from videodataset.dataset import BaseVideoDataset
-
-
-class MyDataset(Dataset, BaseVideoDataset):
-
-    def __init__(
-        self,
-        video_path: Path,
-        total_frames: int,
-    ):
-        Dataset.__init__(self)
-        BaseVideoDataset.__init__(self)
-        self.video = Path(video_path)
-        self.total_frames = total_frames
-
-    def __len__(self):
-        return self.total_frames
-
-    def __getitem__(self, idx) -> dict:
-
-        # Key Point 1: Initialize the decoder, specifying an efficient video codec (e.g., HEVC)
-        decoder = self.get_decoder(decoder_key=self.video, codec="hevc")
-
-        # Key Point 2: Decode the specified frame
-        frame = self.decode_video_frame(
-            decoder=decoder, video_path=self.video, frame_idx=idx
-        )
-        return frame
-
-dataset = MyDataset(video_path="/path/to/video", total_frames=1000)
-
-# Key Point 3: Using 'multiprocessing_context="spawn"' when num_workers > 0
-dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, multiprocessing_context="spawn", )
-
-for epoch in range(2):
-    for batch_idx, batch_data in enumerate(dataloader):
-        logger.info(f"Epoch {epoch} Batch {batch_idx}: {batch_data}")
-
-```
+The complete example can be found in the [quickstart documentation](https://github.com/AgiBot-World/VideoDataset/blob/main/docs/quickstart.md).
 
 ## Documentation
 
@@ -134,6 +89,14 @@ VideoDataset is optimized for high-throughput video processing. Benchmark result
 - **GPU Decoder Utilization:** Over 90% GPU decoder utilization is achieved in a multiprocessing environment.
 
 See the [benchmark documentation](https://github.com/AgiBot-World/VideoDataset/blob/main/docs/benchmark.md) for detailed performance analysis.
+
+### Comparison with other CPU decoding solutions
+
+In addition​, we conducted a comprehensive benchmark comparing it against mainstream CPU software decoding solutions, including OpenCV, Torchvision (PyAV), Torchvision (VideoReader), and TorchCodec (CPU).The results demonstrate that VideoDataset achieves a 3 to 4 times improvement in decoding throughput Furthermore, it also demonstrates outstanding performance in reducing CPU utilization.
+
+![CPU Throughput](https://github.com/AgiBot-World/VideoDataset/blob/main/docs/images/cpu_throughput_benchmark.png "CPU Throughput")
+
+![CPU Utilization](https://github.com/AgiBot-World/VideoDataset/blob/main/docs/images/cpu_utilization_benchmark.png "CPU Utilization")
 
 ## Development Status
 
