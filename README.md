@@ -96,13 +96,13 @@ In addition​, we conducted a comprehensive benchmark comparing it against main
 
 <table>
     <tr>
-        <td><center>
-            <img src="./docs/images/cpu_throughput_benchmark.png" alt="CPU Throughput" style="width: 500; height: auto;" />
+        <td style="width: 50%;"><center>
+            <img src="./docs/images/cpu_throughput_benchmark.png" alt="CPU Throughput" style="max-width: 100%; height: auto; display: block;" />
             <br>
             <strong>CPU Throughput</strong>
         </center></td>
-        <td><center>
-            <img src="./docs/images/cpu_utilization_benchmark.png" alt="CPU Utilization" style="width: 500; height: auto;" />
+        <td  style="width: 50%;"><center>
+            <img src="./docs/images/cpu_utilization_benchmark.png" alt="CPU Utilization" style="max-width: 100%; height: auto; display: block;" />
             <br>
             <strong>CPU Utilization</strong>
         </center></td>
