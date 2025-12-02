@@ -92,24 +92,11 @@ See the [benchmark documentation](https://github.com/AgiBot-World/VideoDataset/b
 
 ### Comparison with other CPU decoding solutions
 
-In addition​, we conducted a comprehensive benchmark comparing it against mainstream CPU software decoding solutions, including OpenCV, Torchvision (PyAV), Torchvision (VideoReader), and TorchCodec (CPU).The results demonstrate that VideoDataset achieves a 3 to 4 times improvement in decoding throughput Furthermore, it also demonstrates outstanding performance in reducing CPU utilization.
+In addition​, we conducted a comprehensive benchmark comparing it against mainstream CPU software decoding solutions, including OpenCV, Torchvision (PyAV), Torchvision (VideoReader), and TorchCodec (CPU).The results demonstrate that VideoDataset achieves a 3 to 4 times improvement in decoding throughput.
+![CPU Throughput](./docs/images/cpu_throughput_benchmark.jpg)
 
-<table>
-    <tr>
-        <td><center>
-            <img src="./docs/images/cpu_throughput_benchmark.jpg" alt="CPU Throughput" style="width: 60%; height: auto; display: block;" />
-            <br>
-            <strong>CPU Throughput</strong>
-        </center></td>
-    </tr>
-    <tr>
-        <td><center>
-            <img src="./docs/images/cpu_utilization_benchmark.jpg" alt="CPU Utilization" style="width: 60%; height: auto; display: block;" />
-            <br>
-            <strong>CPU Utilization</strong>
-        </center></td>
-    </tr>
-</table>
+Furthermore, it also demonstrates outstanding performance in reducing CPU utilization.
+![CPU Utilization](./docs/images/cpu_utilization_benchmark.jpg)
 
 ## Development Status
 
