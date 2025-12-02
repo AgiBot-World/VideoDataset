@@ -137,9 +137,9 @@ See the [benchmark documentation](https://github.com/AgiBot-World/VideoDataset/b
 
 ## Development Status
 
-- [&check;] GPU acceleration via NvCodec
-- [&check;] Random frame access
-- [&check;] PyTorch integration
+- [X] GPU acceleration via NvCodec
+- [X] Random frame access
+- [X] PyTorch integration
 - [ ] Multi-stage pipeline optimization
 - [ ] Compatibility with LeRobot
 - [ ] Distributed storage loading​
