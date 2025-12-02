@@ -17,7 +17,7 @@ pip install agibot-videodataset
 ### Building from Source
 
 ```bash
-pip install git+https://github.com/AgiBot-World/videodataset.git
+pip install git+https://github.com/AgiBot-World/VideoDataset.git
 ```
 
 > Note: If there is no available network to access to github, please add a proxy mirror to the environment variable `GITHUB_PROXY`.
@@ -140,4 +140,4 @@ if __name__ == "__main__":
     main(**vars(args))
 ```
 
-For more examples, see the [tests directory](https://github.com/AgiBot-World/videodataset/-/tree/main/tests).
+For more examples, see the [tests directory](https://github.com/AgiBot-World/VideoDataset/-/tree/main/tests).

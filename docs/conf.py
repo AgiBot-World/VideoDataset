@@ -63,7 +63,7 @@ exclude_patterns = [
 linkcheck_ignore = [
     "https://github.com",
     "https://docs.python.org",
-    "https://github.com/AgiBot-World/videodataset",
+    "https://github.com/AgiBot-World/VideoDataset",
     "https://AgiBot-World.github.io/VideoDataset",
 ]
 

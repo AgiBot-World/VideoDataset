@@ -40,8 +40,8 @@ dependencies = [
     "torch>=2.2.1",
 ]
 urls.documentation = "https://AgiBot-World.github.io/VideoDataset"
-urls.issue = "https://github.com/AgiBot-World/videodataset/issues"
-urls.repository = "https://github.com/AgiBot-World/videodataset"
+urls.issue = "https://github.com/AgiBot-World/VideoDataset/issues"
+urls.repository = "https://github.com/AgiBot-World/VideoDataset"
 
 [dependency-groups]
 test = [

@@ -5,20 +5,20 @@
 A GPU-accelerated library that enables random frame access and efficient video decoding for data loading.
 
 [![Documentation](https://img.shields.io/badge/Documentation-sphinx-blue)](https://AgiBot-World.github.io/VideoDataset)
-[![License](https://img.shields.io/github/license/AgiBot-World/videodataset)](https://github.com/AgiBot-World/videodataset/blob/master/LICENSE)
+[![License](https://img.shields.io/github/license/AgiBot-World/VideoDataset)](https://github.com/AgiBot-World/VideoDataset/blob/master/LICENSE)
 [![SS Badge](https://img.shields.io/badge/Serious%20Scaffold-pybind11-blue)](https://github.com/serious-scaffold/ss-pybind11)
 
-[![CI](https://github.com/AgiBot-World/videodataset/actions/workflows/ci.yml/badge.svg)](https://github.com/AgiBot-World/videodataset/actions/workflows/ci.yml)
-[![CD](https://github.com/AgiBot-World/videodataset/actions/workflows/cd.yml/badge.svg)](https://github.com/AgiBot-World/videodataset/actions/workflows/cd.yml)
-[![CommitLint](https://github.com/AgiBot-World/videodataset/actions/workflows/commitlint.yml/badge.svg)](https://github.com/AgiBot-World/videodataset/actions/workflows/commitlint.yml)
-[![Renovate](https://github.com/AgiBot-World/videodataset/actions/workflows/renovate.yml/badge.svg)](https://github.com/AgiBot-World/videodataset/actions/workflows/renovate.yml)
-[![Semantic Release](https://github.com/AgiBot-World/videodataset/actions/workflows/semantic-release.yml/badge.svg)](https://github.com/AgiBot-World/videodataset/actions/workflows/semantic-release.yml)
+[![CI](https://github.com/AgiBot-World/VideoDataset/actions/workflows/ci.yml/badge.svg)](https://github.com/AgiBot-World/VideoDataset/actions/workflows/ci.yml)
+[![CD](https://github.com/AgiBot-World/VideoDataset/actions/workflows/cd.yml/badge.svg)](https://github.com/AgiBot-World/VideoDataset/actions/workflows/cd.yml)
+[![CommitLint](https://github.com/AgiBot-World/VideoDataset/actions/workflows/commitlint.yml/badge.svg)](https://github.com/AgiBot-World/VideoDataset/actions/workflows/commitlint.yml)
+[![Renovate](https://github.com/AgiBot-World/VideoDataset/actions/workflows/renovate.yml/badge.svg)](https://github.com/AgiBot-World/VideoDataset/actions/workflows/renovate.yml)
+[![Semantic Release](https://github.com/AgiBot-World/VideoDataset/actions/workflows/semantic-release.yml/badge.svg)](https://github.com/AgiBot-World/VideoDataset/actions/workflows/semantic-release.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://AgiBot-World.github.io/VideoDataset/_static/badges/coverage.json)](https://AgiBot-World.github.io/VideoDataset/reports/coverage)
 
-[![Release](https://img.shields.io/github/v/release/AgiBot-World/videodataset)](https://github.com/AgiBot-World/videodataset/releases)
+[![Release](https://img.shields.io/github/v/release/AgiBot-World/VideoDataset)](https://github.com/AgiBot-World/VideoDataset/releases)
 [![PyPI](https://img.shields.io/pypi/v/agibot-videodataset)](https://pypi.org/project/agibot-videodataset/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/agibot-videodataset)](https://pypi.org/project/agibot-videodataset/)
-[![GitHub](https://img.shields.io/github/license/AgiBot-World/videodataset)](https://github.com/AgiBot-World/videodataset/blob/main/LICENSE)
+[![GitHub](https://img.shields.io/github/license/AgiBot-World/VideoDataset)](https://github.com/AgiBot-World/VideoDataset/blob/main/LICENSE)
 
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
@@ -59,7 +59,7 @@ pip install agibot-videodataset
 ### Building from Source
 
 ```bash
-pip install git+https://github.com/AgiBot-World/videodataset.git
+pip install git+https://github.com/AgiBot-World/VideoDataset.git
 ```
 
 ## Quick Start
@@ -108,4 +108,4 @@ Furthermore, it also demonstrates outstanding performance in reducing CPU utiliz
 
 ## License
 
-MIT License, for more details, see the [LICENSE](https://github.com/AgiBot-World/videodataset/blob/master/LICENSE) file.
+MIT License, for more details, see the [LICENSE](https://github.com/AgiBot-World/VideoDataset/blob/master/LICENSE) file.
