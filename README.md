@@ -51,7 +51,7 @@ Key Features:
 - FFmpeg installed
 - Python 3.10 or later
 
-### Install from PyPI index
+### Install from PyPI
 
 ```bash
 pip install agibot-videodataset
@@ -60,13 +60,13 @@ pip install agibot-videodataset
 ### Building from Source
 
 ```bash
-pip install . git+https://github.com/AgiBot-World/videodataset.git
+pip install git+https://github.com/AgiBot-World/videodataset.git
 
 ```
 
 ## Quick Start
 
-The complete example can be found in the [quickstart documentation](https://github.com/AgiBot-World/VideoDataset/blob/main/docs/quickstart.md).
+The complete example can be found in the [quickstart documentation](./docs/quickstart.md).
 
 ## Documentation
 
@@ -84,11 +84,11 @@ It will generate the documentation in the `docs/_build/html` directory and serve
 
 VideoDataset is optimized for high-throughput video processing. Benchmark results show:
 
-- **GPU Decoding:** A decoding throughput of 20,000 FPS is achieved in a multiprocessing environment.
+- **GPU Decoding:** A decoding throughput of 20,000 FPS is achieved in a multiprocessing scenario.
 - **Random Access:** Minimal overhead for non-sequential frame access.
-- **GPU Decoder Utilization:** Over 90% GPU decoder utilization is achieved in a multiprocessing environment.
+- **GPU Decoder Utilization:** Over 90% GPU decoder utilization is achieved in a multiprocessing scenario.
 
-See the [benchmark documentation](https://github.com/AgiBot-World/VideoDataset/blob/main/docs/benchmark.md) for detailed performance analysis.
+See the [benchmark documentation](./docs/benchmark.md) for detailed performance analysis.
 
 ### Comparison with other CPU decoding solutions
 
@@ -105,8 +105,7 @@ Furthermore, it also demonstrates outstanding performance in reducing CPU utiliz
 - [X] PyTorch integration
 - [ ] Multi-stage pipeline optimization
 - [ ] Compatibility with LeRobot
-- [ ] Distributed storage loading​
-- [ ] Additional video format support
+- [ ] PB-level data processing​
 
 ## License
 

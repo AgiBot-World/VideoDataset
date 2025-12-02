@@ -9,7 +9,7 @@
 
 ## Installation
 
-### Install from PyPI index
+### Install from PyPI
 
 ```bash
 pip install agibot-videodataset
@@ -18,7 +18,7 @@ pip install agibot-videodataset
 ### Building from Source
 
 ```bash
-pip install . git+https://github.com/AgiBot-World/videodataset.git
+pip install git+https://github.com/AgiBot-World/videodataset.git
 ```
 
 > Note: If there is no available network to access to github, please add a proxy mirror to the environment variable `GITHUB_PROXY`.
