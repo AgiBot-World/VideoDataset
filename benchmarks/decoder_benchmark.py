@@ -9,6 +9,7 @@ from pathlib import Path
 
 import cv2
 import torchvision
+from torchcodec.decoders import VideoDecoder as CodecDecoder
 
 from videodataset import VideoDecoder
 
@@ -31,12 +32,11 @@ def cv2_decoder_process(
     start_time = None
     end_time = None
     current_step = 0
-    video_path = str(video_path)
     try:
         for i in range(max_steps):
             if current_step == warmup_steps:
                 start_time = time.time()
-            cap = cv2.VideoCapture(video_path)
+            cap = cv2.VideoCapture(str(video_path))
             cap.set(cv2.CAP_PROP_POS_FRAMES, i)
             current_frame_index = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
 
@@ -85,11 +85,11 @@ def torchcodec_decoder_process(
                 start_time = time.time()
             video_path = str(video_path)
             if device == "cuda":
-                decoder = VideoDecoder(
+                decoder = CodecDecoder(
                     video_path, seek_mode="approximate", device="cuda"
                 )
             else:
-                decoder = VideoDecoder(video_path, seek_mode="approximate")
+                decoder = CodecDecoder(video_path, seek_mode="approximate")
             decoder.get_frames_at(indices=[i])
             current_step += 1
         end_time = time.time()
