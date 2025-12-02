@@ -42,6 +42,77 @@ Key Features:
 - Support for common video formats (H.264, H.265, etc.)
 - Easy integration with multi-frameworks and multi-formats.
 
+## Installation
+
+### Prerequisites
+
+- NVIDIA GPU with CUDA support and CUDA Toolkit installed
+  - CUDA Toolkit 12.0 or later
+- FFmpeg installed
+- Python 3.10 or later
+
+### Install from PyPI index
+
+```bash
+pip install agibot-videodataset
+```
+
+### Building from Source
+
+```bash
+pip install . git+https://github.com/AgiBot-World/videodataset.git
+
+```
+
+## Quick Start
+
+Here is a simple example. The complete example can be found in the [quickstart documentation](https://github.com/AgiBot-World/VideoDataset/blob/main/docs/quickstart.md).
+
+```python
+
+from pathlib import Path
+from torch.utils.data import DataLoader, Dataset
+
+from videodataset.dataset import BaseVideoDataset
+
+
+class MyDataset(Dataset, BaseVideoDataset):
+
+    def __init__(
+        self,
+        video_path: Path,
+        total_frames: int,
+    ):
+        Dataset.__init__(self)
+        BaseVideoDataset.__init__(self)
+        self.video = Path(video_path)
+        self.total_frames = total_frames
+
+    def __len__(self):
+        return self.total_frames
+
+    def __getitem__(self, idx) -> dict:
+
+        # Key Point 1: Initialize the decoder, specifying an efficient video codec (e.g., HEVC)
+        decoder = self.get_decoder(decoder_key=self.video, codec="hevc")
+
+        # Key Point 2: Decode the specified frame
+        frame = self.decode_video_frame(
+            decoder=decoder, video_path=self.video, frame_idx=idx
+        )
+        return frame
+
+dataset = MyDataset(video_path="/path/to/video", total_frames=1000)
+
+# Key Point 3: Using 'multiprocessing_context="spawn"' when num_workers > 0
+dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, multiprocessing_context="spawn", )
+
+for epoch in range(2):
+    for batch_idx, batch_data in enumerate(dataloader):
+        logger.info(f"Epoch {epoch} Batch {batch_idx}: {batch_data}")
+
+```
+
 ## Documentation
 
 Full documentation is available at: [Documentation](https://AgiBot-World.github.io/VideoDataset).
@@ -53,6 +124,26 @@ make dev-doc doc-coverage
 ```
 
 It will generate the documentation in the `docs/_build/html` directory and serve it on <http://localhost:8000>.
+
+## Performance
+
+VideoDataset is optimized for high-throughput video processing. Benchmark results show:
+
+- **GPU Decoding:** A decoding throughput of 20,000 FPS is achieved in a multiprocessing environment.
+- **Random Access:** Minimal overhead for non-sequential frame access.
+- **GPU Decoder Utilization:** Over 90% GPU decoder utilization is achieved in a multiprocessing environment.
+
+See the [benchmark documentation](https://github.com/AgiBot-World/VideoDataset/blob/main/docs/benchmark.md) for detailed performance analysis.
+
+## Development Status
+
+- [&check;] GPU acceleration via NvCodec
+- [&check;] Random frame access
+- [&check;] PyTorch integration
+- [ ] Multi-stage pipeline optimization
+- [ ] Compatibility with LeRobot
+- [ ] Distributed storage loading​
+- [ ] Additional video format support
 
 ## License
 
