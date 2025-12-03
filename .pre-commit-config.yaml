@@ -110,7 +110,6 @@ repos:
           \.github/workflows/[^/]+|
           \.gitlab-ci\.yml|
           \.gitlab/workflows/[^/]+|
-          \.readthedocs\.yaml|
           \.renovaterc\.json
           )$
         pass_filenames: false

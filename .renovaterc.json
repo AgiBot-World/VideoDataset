@@ -14,7 +14,6 @@
         "/^\\.devcontainer/Dockerfile$/",
         "/^\\.github/workflows/.+\\.yml$/",
         "/^\\.gitlab/workflows/.+\\.yml$/",
-        "/^\\.readthedocs\\.yaml$/",
         "/^\\.renovaterc\\.json$/",
         "/^docs/.+\\.md$/"
       ],
