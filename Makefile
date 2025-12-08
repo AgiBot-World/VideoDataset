@@ -71,7 +71,7 @@ prerequisites:
 	pipx list --short | grep -q "check-jsonschema 0.35.0" || pipx install --force check-jsonschema==0.35.0
 	pipx list --short | grep -q "codespell 2.4.1" || pipx install --force codespell[toml]==2.4.1
 	pipx list --short | grep -q "pipenv 2025.0.4" || pipx install --force pipenv==2025.0.4
-	pipx list --short | grep -q "pre-commit 4.2.0" || pipx install --force pre-commit==4.2.0
+	pipx list --short | grep -q "pre-commit 4.5.0" || pipx install --force pre-commit==4.5.0
 	pipx list --short | grep -q "pyproject-fmt 2.6.0" || pipx install --force pyproject-fmt==2.6.0
 	pipx list --short | grep -q "ruff 0.14.8" || pipx install --force ruff==0.14.8
 	pipx list --short | grep -q "watchfiles 1.1.1" || pipx install --force watchfiles==1.1.1
