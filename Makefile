@@ -73,7 +73,7 @@ prerequisites:
 	pipx list --short | grep -q "pipenv 2025.0.4" || pipx install --force pipenv==2025.0.4
 	pipx list --short | grep -q "pre-commit 4.2.0" || pipx install --force pre-commit==4.2.0
 	pipx list --short | grep -q "pyproject-fmt 2.6.0" || pipx install --force pyproject-fmt==2.6.0
-	pipx list --short | grep -q "ruff 0.12.3" || pipx install --force ruff==0.12.3
+	pipx list --short | grep -q "ruff 0.14.8" || pipx install --force ruff==0.14.8
 	pipx list --short | grep -q "watchfiles 1.1.1" || pipx install --force watchfiles==1.1.1
 	pipx list --short | grep -q "twine 6.0.1" || pipx install --force twine==6.0.1
 
