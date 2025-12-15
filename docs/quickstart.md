@@ -3,7 +3,6 @@
 ## Prerequisites
 
 - NVIDIA GPU with CUDA support and CUDA Toolkit 12.0+ installed
-- FFmpeg installed
 - Python 3.10 or later
 
 ## Installation
