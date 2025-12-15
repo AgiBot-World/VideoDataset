@@ -80,7 +80,7 @@ jobs:
           echo "PATH=/usr/local/cuda/bin:$PATH" >> $GITHUB_ENV
           echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64" >> $GITHUB_ENV
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6
         with:
           python-version: 3.x
 
