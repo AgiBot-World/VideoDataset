@@ -68,12 +68,12 @@ jobs:
             yum -y install wget cuda-nvcc-12-9 cuda-cudart-devel-12-9 cuda-nvrtc-devel-12-9 nvidia-driver-cuda-libs &&
             rm -rf /var/cache/yum && yum clean all &&
             wget -c https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n7.1-latest-${{ contains(matrix.arch, 'aarch64') && 'linuxarm64' || 'linux64' }}-lgpl-shared-7.1.tar.xz &&
-            tar -xJf ffmpeg-n7.1-latest-${{ contains(matrix.arch, 'aarch64') && 'linuxarm64' || 'linux64' }}-lgpl-shared-7.1.tar.xz &&
-            ls -la $(pwd)/ffmpeg-n7.1-latest-${{ contains(matrix.arch, 'aarch64') && 'linuxarm64' || 'linux64' }}-lgpl-shared-7.1/lib
+            tar -xJf ffmpeg-n7.1-latest-${{ contains(matrix.arch, 'aarch64') && 'linuxarm64' || 'linux64' }}-lgpl-shared-7.1.tar.xz -C /tmp &&
+            ls -la /tmp/ffmpeg-n7.1-latest-${{ contains(matrix.arch, 'aarch64') && 'linuxarm64' || 'linux64' }}-lgpl-shared-7.1/lib
           CIBW_ENVIRONMENT: >
             PATH=$PATH:/usr/local/cuda/bin
-            LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64:$(pwd)/ffmpeg-n7.1-latest-${{ contains(matrix.arch, 'aarch64') && 'linuxarm64' || 'linux64' }}-lgpl-shared-7.1/lib
-            PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$(pwd)/ffmpeg-n7.1-latest-${{ contains(matrix.arch, 'aarch64') && 'linuxarm64' || 'linux64' }}-lgpl-shared-7.1/lib/pkgconfig
+            LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64:/tmp/ffmpeg-n7.1-latest-${{ contains(matrix.arch, 'aarch64') && 'linuxarm64' || 'linux64' }}-lgpl-shared-7.1/lib
+            PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/tmp/ffmpeg-n7.1-latest-${{ contains(matrix.arch, 'aarch64') && 'linuxarm64' || 'linux64' }}-lgpl-shared-7.1/lib/pkgconfig
 
       - name: Upload wheels
         if: >
