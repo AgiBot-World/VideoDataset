@@ -112,6 +112,7 @@ auditwheel repair \
   --exclude 'libgcc*' \
   --exclude 'libc*' \
   --exclude 'ld*' \
+  --strip
 """
 before-build = [
     "ls ~/.cache/pip && rm -rf ~/.cache/pip/* || true",
