@@ -104,7 +104,14 @@ manylinux-x86_64-image = "manylinux_2_28"
 repair-wheel-command = """
 auditwheel repair \
   --wheel-dir {dest_dir} {wheel} \
-  --exclude '*' \
+  --exclude 'libnvcuvid.so*' \
+  --exclude 'libcuda*' \
+  --exclude 'libtorch*' \
+  --exclude 'libc10*' \
+  --exclude 'libstdc++*' \
+  --exclude 'libgcc*' \
+  --exclude 'libc*' \
+  --exclude 'ld*' \
 """
 before-build = [
     "ls ~/.cache/pip && rm -rf ~/.cache/pip/* || true",
