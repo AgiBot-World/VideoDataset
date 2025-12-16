@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from urllib.parse import urlsplit
+from urllib.parse import urlparse
 
 from conan import ConanFile  # type: ignore
 
@@ -17,8 +17,8 @@ def rewrite(url):
         type_msg = "URL should be a string or a list of strings."
         raise TypeError(type_msg)
 
-    parts = list(urlsplit(url))
-    if GITHUB_PROXY and "github.com" in parts[1]:
+    parsed_url = urlparse(url)
+    if GITHUB_PROXY and parsed_url.hostname == "github.com":
         if not GITHUB_PROXY.startswith(("http://", "https://")):
             err_msg = "GITHUB_PROXY should start with http:// or https://"
             raise RuntimeError(err_msg)
