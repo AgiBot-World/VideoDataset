@@ -18,7 +18,11 @@ def rewrite(url):
         raise TypeError(type_msg)
 
     parsed_url = urlparse(url)
-    if GITHUB_PROXY and parsed_url.hostname is not None and parsed_url.hostname == "github.com":
+    if (
+        GITHUB_PROXY
+        and parsed_url.hostname is not None
+        and parsed_url.hostname == "github.com"
+    ):
         if not GITHUB_PROXY.startswith(("http://", "https://")):
             err_msg = "GITHUB_PROXY should start with http:// or https://"
             raise RuntimeError(err_msg)
