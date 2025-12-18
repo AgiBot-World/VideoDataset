@@ -108,8 +108,6 @@ repos:
         language: python
         files: (?x)^(
           \.github/workflows/[^/]+|
-          \.gitlab-ci\.yml|
-          \.gitlab/workflows/[^/]+|
           \.renovaterc\.json
           )$
         pass_filenames: false

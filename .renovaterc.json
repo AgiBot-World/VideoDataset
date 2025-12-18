@@ -13,7 +13,6 @@
         "/^README\\.md$/",
         "/^\\.devcontainer/Dockerfile$/",
         "/^\\.github/workflows/.+\\.yml$/",
-        "/^\\.gitlab/workflows/.+\\.yml$/",
         "/^\\.renovaterc\\.json$/",
         "/^docs/.+\\.md$/"
       ],
