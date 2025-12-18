@@ -140,4 +140,4 @@ if __name__ == "__main__":
     main(**vars(args))
 ```
 
-For more examples, see the [tests directory](https://github.com/AgiBot-World/VideoDataset/-/tree/main/tests).
+For more examples, see the [tests directory](https://github.com/AgiBot-World/VideoDataset/tree/main/tests).
