@@ -429,4 +429,3 @@ Raises:
         .def("gpu_id", &VideoDecoder::gpuId, py::doc(R"(ID of the GPU being used for decoding)"))
         .def("codec", &VideoDecoder::codec, py::doc(R"(Video codec format being decoded)"));
 }
-
