@@ -369,6 +369,10 @@ int NvDecoder::HandleVideoSequence(CUVIDEOFORMAT *pVideoFormat)
 
     CUDA_DRVAPI_CALL(cuCtxPushCurrent(m_cuContext));
     NVDEC_API_CALL(cuvidCreateDecoder(&m_hDecoder, &videoDecodeCreateInfo));
+    if (!m_bUseDeviceFrame)
+    {
+        CUDA_DRVAPI_CALL(cuMemAlloc((CUdeviceptr *)&m_dpScratchFrame, GetOutputFrameSize()));
+    }
     CUDA_DRVAPI_CALL(cuCtxPopCurrent(NULL));
     STOP_TIMER("Session Initialization Time: ");
     NvDecoder::addDecoderSessionOverHead(getDecoderSessionID(), elapsedTime);
@@ -841,10 +845,9 @@ void NvDecoder::GenerateOutput(CUdeviceptr dpSrcFrame, unsigned int nSrcPitch, u
 NvDecoder::NvDecoder(int32_t gpuId, CUcontext cuContext, bool bUseDeviceFrame, cudaVideoCodec eCodec, bool bLowLatency,
     bool bDeviceFramePitched, const Rect *pCropRect, const Dim *pResizeDim, bool extract_user_SEI_Message,
     int maxWidth, int maxHeight, unsigned int clkRate, bool force_zero_latency, OutputColorType eOutputColorType) :
-    m_gpuId(gpuId),
-    m_cuContext(cuContext), m_bUseDeviceFrame(bUseDeviceFrame), m_eCodec(eCodec), m_bDeviceFramePitched(bDeviceFramePitched),
-    m_bExtractSEIMessage(extract_user_SEI_Message), m_nMaxWidth (maxWidth), m_nMaxHeight(maxHeight),
-    m_bForce_zero_latency(force_zero_latency), m_eUserOutputColorType(eOutputColorType)
+    m_gpuId(gpuId), m_cuContext(cuContext), m_bUseDeviceFrame(bUseDeviceFrame), m_eCodec(eCodec), m_bDeviceFramePitched(bDeviceFramePitched),
+    m_nMaxWidth (maxWidth), m_nMaxHeight(maxHeight), m_bForce_zero_latency(force_zero_latency),
+    m_bExtractSEIMessage(extract_user_SEI_Message), m_eUserOutputColorType(eOutputColorType)
 {
     if (pCropRect) m_cropRect = *pCropRect;
     if (pResizeDim) m_resizeDim = *pResizeDim;
