@@ -161,9 +161,9 @@ This table show the results:
 
 | num-processes | throughput (FPS)  | GPU Video Decoder Utilization |
 | ---------:    | ----------:       | ----------:                   |
-| 8             | 8249.6676         | >=30%                         |
-| 16            | 15285.96          | >=60%                         |
-| 32            | 22070.7748        | >=90%                         |
+| 8             | 16656.664784      | >=60%                         |
+| 16            | 23653.689335      | >=90%                         |
+| 32            | 23367.996705      | >=99%                         |
 
 #### 3.3.2 Single-GPU Random Access Dataset Throughput
 
@@ -182,9 +182,9 @@ This table show the results:
 
 | num-processes | throughput (FPS)  | GPU Video Decoder Utilization |
 | ---------:    | ----------:       | ----------:                   |
-| 8             | 8286.304          | >=30%                         |
-| 16            | 14999.516         | >=60%                         |
-| 32            | 22010.9956        | >=85%                         |
+| 8             | 14744.797416      | >=60%                         |
+| 16            | 21328.107555      | >=80%                         |
+| 32            | 26183.698916      | >=95%                         |
 
 #### 3.3.3 DataLoader Throughput
 
@@ -205,9 +205,9 @@ This table show the results:
 
 | num_workers   | throughput (FPS)  | GPU Video Decoder Utilization |
 | ---------:    | ----------:       | ----------:                   |
-| 8             | 8011.246          | >=30%                         |
-| 16            | 14798.5004        | >=60%                         |
-| 32            | 18447.408         | >=80%                         |
+| 8             | 12785.373105      | >=50%                         |
+| 16            | 18441.568423      | >=70%                         |
+| 32            | 20504.285788      | >=90%                         |
 
 #### 3.3.4 Multi-GPU Data Loading Throughput
 
@@ -228,7 +228,8 @@ This table show the results:
 
 | world-size   |  Total throughput (FPS)    | Single-GPU throughput (FPS)   |
 | ---------:    | ----------:               | ----------:                   |
-| 1             | 8004.196                  | 8004.196                      |
-| 2             | 14232.9596                | 7116.4796                     |
-| 4             | 25621.792                 | 6405.448                      |
-| 8             | 42172.896                 | 5271.612                      |
+| 1             | 14243.840020              | 14243.840020                  |
+| 2             | 26799.6398                | 13399.8199                    |
+| 4             | 49026.5408                | 12256.6352                    |
+| 8             | 83417.152                 | 10427.144                     |
+
