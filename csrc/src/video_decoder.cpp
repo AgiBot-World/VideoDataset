@@ -11,6 +11,7 @@
 #include <cuda_runtime_api.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 #include <torch/expanding_array.h>
 #include <torch/extension.h>
@@ -253,7 +254,7 @@ VideoDecoder::VideoDecoder(int gpuId, const std::string& codec) {
     this->codec_ = codec;
     this->gpuId_ = gpuId;
     this->nvDecoder_ =
-        std::make_unique<NvDecoder>(this->gpuId_, this->cuCtx_, true, avCodec2NvCodec(getAVCodeID(codec)), true);
+        std::make_unique<NvDecoder>(this->gpuId_, this->cuCtx_, false, avCodec2NvCodec(getAVCodeID(codec)), true);
 }
 
 VideoDecoder::~VideoDecoder() {
@@ -313,14 +314,15 @@ py::array_t<uint8_t> VideoDecoder::decodeToNp(const std::string& videoPath, int 
     }
 
     int64_t decodedFrameTimeStamp = 0;
-    auto* frameData = this->nvDecoder_->GetFrame(&decodedFrameTimeStamp);
-    std::vector<ssize_t> shape = {static_cast<ssize_t>(this->nvDecoder_->GetHeight()),
-                                  static_cast<ssize_t>(this->nvDecoder_->GetWidth()),
-                                  3};
-    pybind11::array_t<uint8_t> decoded_frame_np(shape);
-    uint8_t* numpyData = decoded_frame_np.mutable_data();
-    NVDEC_API_CALL(cuMemcpyDtoH(numpyData, (CUdeviceptr)frameData, this->nvDecoder_->GetOutputFrameSize()));
-    return decoded_frame_np;
+    auto* frameData = this->nvDecoder_->GetLockedFrame(&decodedFrameTimeStamp);
+    auto deleter = [this, frameData]() {
+        this->nvDecoder_->UnlockFrame(reinterpret_cast<uint8_t**>(frameData));
+    };
+    return py::array_t<uint8_t>(
+        {this->nvDecoder_->GetHeight(), this->nvDecoder_->GetWidth(), 3},
+        {this->nvDecoder_->GetWidth() * 3,3, 1},
+        frameData,
+    py::capsule(&deleter));
 }
 
 torch::Tensor VideoDecoder::decodeToTensor(const std::string& videoPath, int frameIndex) {
@@ -342,14 +344,15 @@ torch::Tensor VideoDecoder::decodeToTensor(const std::string& videoPath, int fra
         throw; // Preserve original exception
     }
     int64_t decodedFrameTimeStamp = 0;
-    auto* frameData = this->nvDecoder_->GetFrame(&decodedFrameTimeStamp);
-    auto options = torch::TensorOptions().dtype(torch::kU8).device(torch::kCUDA, this->gpuId_);
-    return torch::from_blob(frameData,
-                            {static_cast<int64_t>(this->nvDecoder_->GetHeight()),
-                             static_cast<int64_t>(this->nvDecoder_->GetWidth()),
-                             3},
-                            options)
-        .clone();
+    auto* frameData = this->nvDecoder_->GetLockedFrame(&decodedFrameTimeStamp);
+    auto options = torch::TensorOptions().dtype(torch::kU8);
+    return torch::from_blob(
+        frameData,
+        {static_cast<int64_t>(this->nvDecoder_->GetHeight()), static_cast<int64_t>(this->nvDecoder_->GetWidth()), 3},
+        [this](void* buf){
+            this->nvDecoder_->UnlockFrame(reinterpret_cast<uint8_t **>(&buf));
+        },
+        options);
 }
 
 PYBIND11_MODULE(_decoder, m) {
