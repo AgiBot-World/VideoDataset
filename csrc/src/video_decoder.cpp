@@ -117,7 +117,7 @@ public:
 
     double getDuration() const { return static_cast<double>(fmtCtx->duration) / AV_TIME_BASE; }
 
-    double getFps() const { return av_q2d(fmtCtx->streams[this->videoStreamIdx]->r_frame_rate); }
+    double getFps() const { return av_q2d(fmtCtx->streams[this->videoStreamIdx]->avg_frame_rate); }
 
     AVCodecID getVideoCodec() const { return eVideoCodec; }
 
@@ -290,13 +290,19 @@ py::array_t<uint8_t> VideoDecoder::decodeToNp(const std::string& videoPath, int 
     try {
         Demuxer demuxer(videoPath);
         auto frameTimestamp = demuxer.seek(static_cast<size_t>(frameIndex));
-
+        auto threshold = static_cast<int>(demuxer.getFps());
         uint8_t* video = nullptr;
         int64_t timestamp = 0;
         int videoBytes = 0;
         while (demuxer.demux(&video, &videoBytes, timestamp) && timestamp <= frameTimestamp) {
-            auto frame_num = this->nvDecoder_->Decode(video, videoBytes, CUVID_PKT_ENDOFPICTURE, timestamp);
-            if (frame_num == 0)
+            auto closestTimestamp = std::abs(frameTimestamp - timestamp) <= threshold;
+            auto num = this->nvDecoder_->Decode(
+                video,
+                videoBytes,
+                CUVID_PKT_ENDOFPICTURE,
+                timestamp,
+                closestTimestamp ? timestamp : -1);
+            if (num == 0)
                 continue;
             this->checkDecodeFormat();
         }
@@ -314,20 +320,26 @@ py::array_t<uint8_t> VideoDecoder::decodeToNp(const std::string& videoPath, int 
         {this->nvDecoder_->GetHeight(), this->nvDecoder_->GetWidth(), 3},
         {this->nvDecoder_->GetWidth() * 3,3, 1},
         frameData,
-    py::capsule(&deleter));
+        py::capsule(&deleter));
 }
 
 torch::Tensor VideoDecoder::decodeToTensor(const std::string& videoPath, int frameIndex) {
     try {
         Demuxer demuxer(videoPath);
         auto frameTimestamp = demuxer.seek(static_cast<size_t>(frameIndex));
-
+        auto threshold = static_cast<int>(demuxer.getFps());
         uint8_t* video = nullptr;
         int64_t timestamp = 0;
         int videoBytes = 0;
         while (demuxer.demux(&video, &videoBytes, timestamp) && timestamp <= frameTimestamp) {
-            auto frame_num = this->nvDecoder_->Decode(video, videoBytes, CUVID_PKT_ENDOFPICTURE, timestamp);
-            if (frame_num == 0)
+            auto closestTimestamp = std::abs(frameTimestamp - timestamp) <= threshold;
+            auto num = this->nvDecoder_->Decode(
+                video,
+                videoBytes,
+                CUVID_PKT_ENDOFPICTURE,
+                timestamp,
+                closestTimestamp ? timestamp : -1);
+            if (num == 0)
                 continue;
             this->checkDecodeFormat();
         }

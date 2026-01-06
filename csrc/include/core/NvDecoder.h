@@ -261,7 +261,7 @@ public:
     *   @param  nFlags - CUvideopacketflags for setting decode options
     *   @param  nTimestamp - presentation timestamp
     */
-    int Decode(const uint8_t *pData, int nSize, int nFlags = 0, int64_t nTimestamp = 0);
+    int Decode(const uint8_t *pData, int nSize, int nFlags = 0, int64_t nTimestamp = 0, int64_t nTargetTimestamp = -1);
 
     /**
     *   @brief  This function returns a decoded frame and timestamp. This function should be called in a loop for
@@ -407,6 +407,7 @@ private:
     std::vector<uint8_t *> m_vpFrame;
     // timestamps of decoded frames
     std::vector<int64_t> m_vTimestamp;
+    int64_t m_nTargetDecodeTimestamp = -1;
     int m_nDecodedFrame = 0, m_nDecodedFrameReturned = 0;
     int m_nDecodePicCnt = 0, m_nPicNumInDecodeOrder[MAX_FRM_CNT];
     CUVIDSEIMESSAGEINFO *m_pCurrSEIMessage = NULL;
