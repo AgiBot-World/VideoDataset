@@ -2,6 +2,7 @@
 #include "video_decoder.hpp"
 
 #include <pybind11/embed.h>
+#include <catch2/benchmark/catch_benchmark_all.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <cstddef>
@@ -67,4 +68,13 @@ TEST_CASE_METHOD(VideoFixture, "VideoDecoder.decode", "[VideoDecoder]") {
     REQUIRE(np_frame.ndim() == 3);
     auto tensor_frame = VideoDecoder(0, "h265").decodeToTensor(video_path, 9);
     REQUIRE(tensor_frame.dim() == 3);
+}
+
+TEST_CASE_METHOD(VideoFixture, "VideoDecoder.benchmark", "[VideoDecoder]") {
+    pybind11::scoped_interpreter guard{};
+
+    BENCHMARK_ADVANCED("VideoDecoder.decodeToTensor")(Catch::Benchmark::Chronometer meter) {
+        auto decoder = VideoDecoder(0, "h265");
+        meter.measure([&]() { decoder.decodeToTensor(video_path, 9); });
+    };
 }
