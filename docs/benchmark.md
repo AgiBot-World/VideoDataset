@@ -98,7 +98,6 @@ You can ​measure​ this metric by running the `benchmarks/base_video_dataset.
 
 ```bash
 python benchmarks/base_video_dataset.py --repo-id AgiBotWorldAdmin/videodataset-benchmark --num-workers 8 16 32
-
 ```
 
 #### **Parameters**
