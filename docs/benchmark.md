@@ -62,9 +62,7 @@ This metric evaluates how the data loading performance scales across multiple GP
 You can ​measure​ the `Video Decoding Throughput` metric by running the `benchmarks/decoder_benchmark.py` file.
 
 ```bash
-
 python benchmarks/decoder_benchmark.py --video-path AgiBotWorldAdmin/videodataset-benchmark/videos/observation.images.top_head/chunk-000/file-000.mp4 --num-processes 4
-
 ```
 
 #### **Parameters**
@@ -81,9 +79,7 @@ python benchmarks/decoder_benchmark.py --video-path AgiBotWorldAdmin/videodatase
 You can ​measure​ this metric by running the `benchmarks/dataset_benchmark.py` file.
 
 ```bash
-
 python benchmarks/dataset_benchmark.py --repo-id AgiBotWorldAdmin/videodataset-benchmark --num-processes 8
-
 ```
 
 #### **Parameters**
@@ -101,7 +97,6 @@ python benchmarks/dataset_benchmark.py --repo-id AgiBotWorldAdmin/videodataset-b
 You can ​measure​ this metric by running the `benchmarks/base_video_dataset.py` file.
 
 ```bash
-
 python benchmarks/base_video_dataset.py --repo-id AgiBotWorldAdmin/videodataset-benchmark --num-workers 8 16 32
 
 ```
@@ -123,7 +118,6 @@ python benchmarks/base_video_dataset.py --repo-id AgiBotWorldAdmin/videodataset-
 You can ​measure​ this metric by running the `benchmarks/base_video_dataset.py` file.
 
 ```bash
-
 python benchmarks/base_video_dataset.py --repo-id AgiBotWorldAdmin/videodataset-benchmark --num-workers 8 --world-size 2
 
 ```
@@ -149,55 +143,52 @@ python benchmarks/base_video_dataset.py --repo-id AgiBotWorldAdmin/videodataset-
 We ran the benchmark with the following parameters:
 
 ```bash
-
 python benchmarks/decoder_benchmark.py \
     --video-path AgiBotWorldAdmin/videodataset-benchmark/videos/observation.images.top_head/chunk-000/file-000.mp4 \
     --num-processes 8 \
     --warmup-steps 10 \
-    --max-steps 1000
+    --max-steps 5000
 ```
 
 This table show the results:
 
 | num-processes | throughput (FPS)  | GPU Video Decoder Utilization |
 | ---------:    | ----------:       | ----------:                   |
-| 8             | 16656.664784      | >=60%                         |
-| 16            | 23653.689335      | >=90%                         |
-| 32            | 23367.996705      | >=99%                         |
+| 8             | 18238.417468      | >=75%                         |
+| 16            | 23323.125684      | >=95%                         |
+| 32            | 23989.992286      | >=99%                         |
 
 #### 3.3.2 Single-GPU Random Access Dataset Throughput
 
 We ran the benchmark with the following parameters:
 
 ```bash
-
 python benchmarks/dataset_benchmark.py \
     --repo-id AgiBotWorldAdmin/videodataset-benchmark \
     --num-processes 8 \
     --warmup-steps 10 \
-    --max-steps 1000
+    --max-steps 5000
 ```
 
 This table show the results:
 
 | num-processes | throughput (FPS)  | GPU Video Decoder Utilization |
 | ---------:    | ----------:       | ----------:                   |
-| 8             | 14744.797416      | >=60%                         |
-| 16            | 21328.107555      | >=80%                         |
-| 32            | 26183.698916      | >=95%                         |
+| 8             | 16740.230540      | >=65%                         |
+| 16            | 21164.236110      | >=85%                         |
+| 32            | 23042.587550      | >=95%                         |
 
 #### 3.3.3 DataLoader Throughput
 
 We ran the benchmark with the following parameters:
 
 ```bash
-
 python benchmarks/base_video_dataset.py \
     --repo-id AgiBotWorldAdmin/videodataset-benchmark \
     --num-workers 8 \
     --batch-size 16 \
     --warmup-steps 10 \
-    --max-steps 1000 \
+    --max-steps 5000 \
     --world-size 1
 ```
 
@@ -205,30 +196,29 @@ This table show the results:
 
 | num_workers   | throughput (FPS)  | GPU Video Decoder Utilization |
 | ---------:    | ----------:       | ----------:                   |
-| 8             | 12785.373105      | >=50%                         |
-| 16            | 18441.568423      | >=70%                         |
-| 32            | 20504.285788      | >=90%                         |
+| 8             | 13743.756485      | >50%,<75%                     |
+| 16            | 15808.540464      | >70%,<90%                     |
+| 32            | 16051.559606      | >80%,<99%                     |
 
 #### 3.3.4 Multi-GPU Data Loading Throughput
 
 We ran the benchmark with the following parameters:
 
 ```bash
-
 python benchmarks/base_video_dataset.py \
     --repo-id AgiBotWorldAdmin/videodataset-benchmark \
     --num-workers 8 \
     --batch-size 16 \
     --warmup-steps 10 \
-    --max-steps 1000 \
+    --max-steps 5000 \
     --world-size 1
 ```
 
 This table show the results:
 
 | world-size   |  Total throughput (FPS)    | Single-GPU throughput (FPS)   |
-| ---------:    | ----------:               | ----------:                   |
-| 1             | 14243.840020              | 14243.840020                  |
-| 2             | 26799.6398                | 13399.8199                    |
-| 4             | 49026.5408                | 12256.6352                    |
-| 8             | 83417.152                 | 10427.144                     |
+| ---------:   | ----------:                | ----------:                   |
+| 1            | 13788.8602                 | 13788.8602                    |
+| 2            | 26699.7531                 | 13349.8765                    |
+| 4            | 51189.7781                 | 12797.4445                    |
+| 8            | 92158.5415                 | 11519.8176                    |
