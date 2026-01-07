@@ -181,8 +181,7 @@ public:
         std::lock_guard<std::mutex> lock(cacheMutex);
         auto it = demuxerCache.find(videoPath);
         if (it != demuxerCache.end()) {
-            auto cachedDemuxer = it->second;
-            return cachedDemuxer;
+            return it->second;
         }
 
         auto newDemuxer = std::shared_ptr<Demuxer>(new Demuxer(videoPath));
