@@ -29,7 +29,7 @@ extern "C" {
 
 #include "core/NvDecoder.h"
 
-cudaVideoCodec avCodec2NvCodec(AVCodecID id) {
+inline cudaVideoCodec avCodec2NvCodec(AVCodecID id) {
     switch (id) {
         case AV_CODEC_ID_MPEG1VIDEO:
             return cudaVideoCodec_MPEG1;
@@ -116,7 +116,7 @@ public:
 
     double getDuration() const { return static_cast<double>(fmtCtx->duration) / AV_TIME_BASE; }
 
-    double getFps() const { return av_q2d(fmtCtx->streams[this->videoStreamIdx]->r_frame_rate); }
+    double getFps() const { return av_q2d(fmtCtx->streams[this->videoStreamIdx]->avg_frame_rate); }
 
     AVCodecID getVideoCodec() const { return eVideoCodec; }
 
@@ -137,7 +137,7 @@ public:
         return targetTimestamp;
     }
 
-    bool demux(uint8_t** video, int* videoBytes, int64_t& timestamp) {
+    bool demux(uint8_t** video, int* videoBytes, int64_t& timestamp, int64_t& duration) {
         if (!fmtCtx) {
             return false;
         }
@@ -167,17 +167,18 @@ public:
             *video = pktFiltered->data;
             *videoBytes = pktFiltered->size;
             timestamp = pktFiltered->pts;
+            duration = pktFiltered->duration;
         }
         else {
             *video = pkt->data;
             *videoBytes = pkt->size;
             timestamp = pkt->pts;
+            duration = pkt->duration;
         }
         return true;
     }
 
-    static std::shared_ptr<Demuxer> getInstance(const std::string& videoPath)
-    {
+    static std::shared_ptr<Demuxer> getInstance(const std::string& videoPath) {
         std::lock_guard<std::mutex> lock(cacheMutex);
         auto it = demuxerCache.find(videoPath);
         if (it != demuxerCache.end()) {
@@ -305,24 +306,7 @@ std::vector<py::array_t<uint8_t>> VideoDecoder::decodeToNps(const std::string& v
 }
 
 py::array_t<uint8_t> VideoDecoder::decodeToNp(const std::string& videoPath, int frameIndex) {
-    try {
-        auto demuxer = Demuxer::getInstance(videoPath);
-        auto frameTimestamp = demuxer->seek(static_cast<size_t>(frameIndex));
-
-        uint8_t* video = nullptr;
-        int64_t timestamp = 0;
-        int videoBytes = 0;
-        while (demuxer->demux(&video, &videoBytes, timestamp) && timestamp <= frameTimestamp) {
-            auto frame_num = this->nvDecoder_->Decode(video, videoBytes, CUVID_PKT_ENDOFPICTURE, timestamp);
-            if (frame_num == 0)
-                continue;
-            this->checkDecodeFormat();
-        }
-    }
-    catch (...) {
-        throw; // Preserve original exception
-    }
-
+    this->decode(videoPath, frameIndex);
     int64_t decodedFrameTimeStamp = 0;
     auto* frameData = this->nvDecoder_->GetFrame(&decodedFrameTimeStamp);
     std::vector<ssize_t> shape = {static_cast<ssize_t>(this->nvDecoder_->GetHeight()),
@@ -335,23 +319,7 @@ py::array_t<uint8_t> VideoDecoder::decodeToNp(const std::string& videoPath, int 
 }
 
 torch::Tensor VideoDecoder::decodeToTensor(const std::string& videoPath, int frameIndex) {
-    try {
-        auto demuxer = Demuxer::getInstance(videoPath);
-        auto frameTimestamp = demuxer->seek(static_cast<size_t>(frameIndex));
-
-        uint8_t* video = nullptr;
-        int64_t timestamp = 0;
-        int videoBytes = 0;
-        while (demuxer->demux(&video, &videoBytes, timestamp) && timestamp <= frameTimestamp) {
-            auto frame_num = this->nvDecoder_->Decode(video, videoBytes, CUVID_PKT_ENDOFPICTURE, timestamp);
-            if (frame_num == 0)
-                continue;
-            this->checkDecodeFormat();
-        }
-    }
-    catch (...) {
-        throw; // Preserve original exception
-    }
+    this->decode(videoPath, frameIndex);
     int64_t decodedFrameTimeStamp = 0;
     auto* frameData = this->nvDecoder_->GetFrame(&decodedFrameTimeStamp);
     auto options = torch::TensorOptions().dtype(torch::kU8).device(torch::kCUDA, this->gpuId_);
@@ -361,6 +329,31 @@ torch::Tensor VideoDecoder::decodeToTensor(const std::string& videoPath, int fra
                              3},
                             options)
         .clone();
+}
+
+void VideoDecoder::decode(const std::string& videoPath, const int frameIndex) {
+    try {
+        auto demuxer = Demuxer::getInstance(videoPath);
+        const auto frameTimestamp = demuxer->seek(static_cast<size_t>(frameIndex));
+        uint8_t* video = nullptr;
+        int videoBytes = 0;
+        int64_t timestamp = 0;
+        int64_t duration = 0;
+        while (demuxer->demux(&video, &videoBytes, timestamp, duration) && timestamp <= frameTimestamp) {
+            const auto closestTimestamp = std::abs(frameTimestamp - timestamp) <= duration >> 1;
+            const auto num = this->nvDecoder_->Decode(video,
+                                                      videoBytes,
+                                                      CUVID_PKT_ENDOFPICTURE,
+                                                      timestamp,
+                                                      closestTimestamp ? timestamp : -1);
+            if (num == 0)
+                continue;
+            this->checkDecodeFormat();
+        }
+    }
+    catch (...) {
+        throw; // Preserve original exception
+    }
 }
 
 PYBIND11_MODULE(_decoder, m) {

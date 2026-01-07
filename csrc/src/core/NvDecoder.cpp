@@ -562,6 +562,9 @@ int NvDecoder::HandlePictureDecode(CUVIDPICPARAMS *pPicParams) {
 *  0: fail, >=1: succeeded
 */
 int NvDecoder::HandlePictureDisplay(CUVIDPARSERDISPINFO *pDispInfo) {
+    if(this->m_nTargetDecodeTimestamp < 0 || this->m_nTargetDecodeTimestamp != pDispInfo->timestamp)
+        return 1;
+
     CUVIDPROCPARAMS videoProcessingParameters = {};
     videoProcessingParameters.progressive_frame = pDispInfo->progressive_frame;
     videoProcessingParameters.second_field = pDispInfo->repeat_first_field + 1;
@@ -925,10 +928,11 @@ NvDecoder::~NvDecoder() {
     NvDecoder::addDecoderSessionOverHead(getDecoderSessionID(), elapsedTime);
 }
 
-int NvDecoder::Decode(const uint8_t *pData, int nSize, int nFlags, int64_t nTimestamp)
+int NvDecoder::Decode(const uint8_t *pData, int nSize, int nFlags, int64_t nTimestamp, int64_t nTargetTimestamp)
 {
     m_nDecodedFrame = 0;
     m_nDecodedFrameReturned = 0;
+    m_nTargetDecodeTimestamp = nTargetTimestamp;
     CUVIDSOURCEDATAPACKET packet = { 0 };
     packet.payload = pData;
     packet.payload_size = nSize;
