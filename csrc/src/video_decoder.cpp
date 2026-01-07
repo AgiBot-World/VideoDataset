@@ -184,7 +184,7 @@ public:
             return it->second;
         }
 
-        auto newDemuxer = std::shared_ptr<Demuxer>(new Demuxer(videoPath));
+        auto newDemuxer = std::make_shared<Demuxer>(videoPath);
         demuxerCache[videoPath] = newDemuxer;
         return newDemuxer;
     }
