@@ -176,10 +176,9 @@ public:
         return true;
     }
 
-    static std::shared_ptr<Demuxer> getInstance(const std::string& videoPath) {
-
+    static std::shared_ptr<Demuxer> getInstance(const std::string& videoPath)
+    {
         std::lock_guard<std::mutex> lock(cacheMutex);
-
         auto it = demuxerCache.find(videoPath);
         if (it != demuxerCache.end()) {
             auto cachedDemuxer = it->second;
